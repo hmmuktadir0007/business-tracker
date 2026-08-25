@@ -8,136 +8,257 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @media print {
+      body { background: white !important; padding: 0 !important; }
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      .shadow-sm, .border { box-shadow: none !important; border-color: #e2e8f0 !important; }
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen p-4 md:p-8">
-  <div class="max-w-6xl mx-auto space-y-6">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen p-3 md:p-6">
 
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+  <!-- PIN Lock Screen Overlay (Hidden if not locked) -->
+  <div id="pinLockOverlay" class="hidden fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center space-y-4">
+      <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl">🔒</div>
       <div>
-        <h1 class="text-2xl font-bold text-slate-900"><span class="text-blue-600">TYMINO:</span> Business Expense & Profit Tracker</h1>
-        <p class="text-sm text-slate-500">Track sourcing (RMB), ads (USD), packaging, logistics, operations, sales, and monthly profit in BDT.</p>
+        <h2 class="text-xl font-bold text-slate-900">TYMINO Financials</h2>
+        <p class="text-xs text-slate-500 mt-1">Enter your 4-digit PIN to access the dashboard</p>
       </div>
-      <div class="flex items-center gap-3">
-        <label for="filterMonth" class="text-sm font-medium text-slate-600">Month:</label>
-        <input type="month" id="filterMonth" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <input type="password" id="pinInput" maxlength="6" placeholder="Enter PIN" class="w-full text-center tracking-widest text-2xl font-bold py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+      <button onclick="unlockWithPin()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition">
+        Unlock Dashboard
+      </button>
+      <div id="pinError" class="text-xs text-rose-600 font-medium hidden">Incorrect PIN. Please try again.</div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Bar -->
+    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight"><span class="text-blue-600">TYMINO:</span> Expense & Profit Tracker</h1>
+          <span class="px-2 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full">Pro P&L</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">E-Commerce Landed COGS, ROAS, Foreign Currency Sourcing & Unit Economics (BDT ৳)</p>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex flex-wrap items-center gap-2.5 no-print">
+        <!-- Date Preset Dropdown -->
+        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs">
+          <label for="datePreset" class="font-medium text-slate-600">View:</label>
+          <select id="datePreset" class="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer" onchange="handleDatePresetChange()">
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="this_quarter">This Quarter</option>
+            <option value="this_year">This Year (YTD)</option>
+            <option value="all_time">All Time</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+
+        <!-- Custom Date Range Inputs (Visible when Custom is selected) -->
+        <div id="customDateRangeInputs" class="hidden flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2 py-1 text-xs">
+          <input type="date" id="customStartDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
+          <span class="text-slate-400">to</span>
+          <input type="date" id="customEndDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
+        </div>
+
+        <!-- Tool Buttons -->
+        <button onclick="openBudgetModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 flex items-center gap-1 transition">
+          📊 Budgets
+        </button>
+        <button onclick="togglePinSettings()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 flex items-center gap-1 transition">
+          🔒 PIN Lock
+        </button>
+        <button onclick="window.print()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-xl border border-blue-200 flex items-center gap-1 transition">
+          🖨️ Print / PDF
+        </button>
       </div>
     </header>
 
-    <!-- Monthly Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- Total Sales -->
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sales / Revenue</p>
-        <p id="totalRevenue" class="text-2xl font-bold text-emerald-600 mt-2">৳ 0.00</p>
+    <!-- Top Financial & E-Commerce Metrics Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <!-- 1. Total Sales -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Sales</p>
+        <p id="totalRevenue" class="text-xl font-bold text-emerald-600 mt-1">৳ 0.00</p>
+        <p id="ordersSubtitle" class="text-[10px] text-slate-400 mt-0.5">0 orders recorded</p>
       </div>
-      <!-- Total Expenses -->
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Expenses</p>
-        <p id="totalExpenses" class="text-2xl font-bold text-rose-600 mt-2">৳ 0.00</p>
+
+      <!-- 2. Landed COGS -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Landed COGS</p>
+          <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Product</span>
+        </div>
+        <p id="totalCOGS" class="text-xl font-bold text-amber-600 mt-1">৳ 0.00</p>
+        <p id="cogsMarginSubtitle" class="text-[10px] text-slate-400 mt-0.5">Sourcing + Pack + Ship</p>
       </div>
-      <!-- Net Profit / Loss -->
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Profit / Loss</p>
-        <p id="netProfit" class="text-2xl font-bold text-slate-900 mt-2">৳ 0.00</p>
+
+      <!-- 3. Gross Profit -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Gross Profit</p>
+          <span id="grossMarginBadge" class="text-[9px] font-semibold bg-blue-100 text-blue-800 px-1 rounded">0%</span>
+        </div>
+        <p id="grossProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Revenue − COGS</p>
       </div>
-      <!-- Profit Margin -->
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Profit Margin</p>
-        <p id="profitMargin" class="text-2xl font-bold text-blue-600 mt-2">0.0%</p>
+
+      <!-- 4. Operating Expenses (OpEx) -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Operating (OpEx)</p>
+          <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Burn</span>
+        </div>
+        <p id="totalOpEx" class="text-xl font-bold text-rose-600 mt-1">৳ 0.00</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Ads, Salaries, Rent, Tools</p>
+      </div>
+
+      <!-- 5. Net Profit / Loss -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Net Profit</p>
+          <span id="netMarginBadge" class="text-[9px] font-semibold bg-emerald-100 text-emerald-800 px-1 rounded">0%</span>
+        </div>
+        <p id="netProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Bottom line</p>
+      </div>
+
+      <!-- 6. Marketing ROAS & AOV -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">ROAS & AOV</p>
+          <span id="roasBadge" class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">0.0x</span>
+        </div>
+        <p id="aovText" class="text-sm font-bold text-slate-800 mt-1">AOV: ৳ 0</p>
+        <p id="adSpendSubtitle" class="text-[10px] text-slate-400 mt-0.5">Ad Spend: ৳ 0</p>
       </div>
     </div>
 
-    <!-- Main Grid: Form/Converter + Breakdown & Chart -->
+    <!-- Main Workspace Grid: Form (Left) & Charts/Breakdowns (Right) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Left Column: Form & Currency Converter -->
-      <div class="space-y-6 lg:col-span-1">
+      <!-- Left Column: Form & Quick Calculator (no-print) -->
+      <div class="space-y-6 lg:col-span-1 no-print">
         
-        <!-- Entry Form -->
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h2 class="text-lg font-semibold text-slate-900 mb-4">Log Transaction</h2>
-          <form id="transactionForm" class="space-y-4">
+        <!-- Transaction Entry / Edit Form -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
+          <!-- Form Header -->
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="formTitle" class="text-base font-bold text-slate-900">Log New Transaction</h2>
+            <button id="cancelEditBtn" onclick="cancelEditing()" class="hidden text-xs text-rose-600 hover:text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded">
+              ✕ Cancel Edit
+            </button>
+          </div>
+
+          <form id="transactionForm" class="space-y-3.5">
+            <input type="hidden" id="editingId" value="">
+
+            <!-- Transaction Type -->
             <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1">Transaction Type</label>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Transaction Type</label>
               <div class="grid grid-cols-2 gap-2">
-                <label class="flex items-center justify-center p-2 text-sm border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input type="radio" name="entryType" value="income" class="mr-2" checked onchange="updateCategories()">
+                <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                  <input type="radio" name="entryType" value="income" class="mr-1.5" checked onchange="updateCategories()">
                   <span>Income / Sales</span>
                 </label>
-                <label class="flex items-center justify-center p-2 text-sm border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input type="radio" name="entryType" value="expense" class="mr-2" onchange="updateCategories()">
+                <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                  <input type="radio" name="entryType" value="expense" class="mr-1.5" onchange="updateCategories()">
                   <span>Expense</span>
                 </label>
               </div>
             </div>
 
+            <!-- Category Dropdown with <optgroup> -->
             <div>
-              <label for="category" class="block text-xs font-medium text-slate-700 mb-1">Category Header</label>
-              <select id="category" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="handleCategoryChange()"></select>
+              <label for="category" class="block text-[11px] font-semibold text-slate-600 mb-1">Category Header</label>
+              <select id="category" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" onchange="handleCategoryChange()"></select>
+            </div>
+
+            <!-- Optional Unit / Order Count (Visible for Income entries) -->
+            <div id="orderCountBox">
+              <label for="orderCount" class="block text-[11px] font-semibold text-slate-600 mb-1">Number of Orders / Units (Optional)</label>
+              <input type="number" min="1" id="orderCount" placeholder="e.g. 5 orders or 10 pcs" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <!-- Dynamic Currency Converter Box (for Ad Cost USD & China Sourcing RMB) -->
-            <div id="currencyHelperBox" class="hidden p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2.5">
-              <div class="flex items-center justify-between text-xs font-semibold text-blue-900">
+            <div id="currencyHelperBox" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold text-blue-900">
                 <span id="helperBoxTitle">Foreign Currency Conversion</span>
-                <span class="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">Auto-fills BDT</span>
+                <span class="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-medium">Auto-fills BDT</span>
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label id="foreignAmountLabel" class="block text-[11px] font-medium text-blue-800 mb-0.5">Amount</label>
-                  <input type="number" step="any" id="foreignAmount" placeholder="0.00" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateFromForeign()">
+                  <label id="foreignAmountLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Amount in Foreign</label>
+                  <input type="number" step="any" id="foreignAmount" placeholder="0.00" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
                 </div>
                 <div>
-                  <label id="foreignRateLabel" class="block text-[11px] font-medium text-blue-800 mb-0.5">Rate (1 unit = ? ৳)</label>
-                  <input type="number" step="any" id="foreignRate" placeholder="122.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateFromForeign()">
+                  <label id="foreignRateLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Rate (1 unit = ? ৳)</label>
+                  <input type="number" step="any" id="foreignRate" placeholder="122.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
                 </div>
               </div>
             </div>
 
+            <!-- Final Amount in BDT -->
             <div>
-              <label for="amount" class="block text-xs font-medium text-slate-700 mb-1">Final Amount (BDT ৳)</label>
-              <input type="number" step="0.01" min="0.01" id="amount" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label for="amount" class="block text-[11px] font-semibold text-slate-600 mb-1">Final Amount (BDT ৳)</label>
+              <input type="number" step="0.01" min="0.01" id="amount" required placeholder="0.00" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
+            <!-- Date -->
             <div>
-              <label for="date" class="block text-xs font-medium text-slate-700 mb-1">Date</label>
-              <input type="date" id="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label for="date" class="block text-[11px] font-semibold text-slate-600 mb-1">Date</label>
+              <input type="date" id="date" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
             </div>
 
+            <!-- Receipt / Invoice Link (Optional) -->
             <div>
-              <label for="notes" class="block text-xs font-medium text-slate-700 mb-1">Description / Note</label>
-              <input type="text" id="notes" placeholder="e.g., 1688 fabric order #4, Facebook ads batch, Pathao invoice" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label for="receiptLink" class="block text-[11px] font-semibold text-slate-600 mb-1">Receipt / Invoice Link (Optional)</label>
+              <input type="url" id="receiptLink" placeholder="e.g. Google Drive link, invoice URL" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm">
+            <!-- Notes -->
+            <div>
+              <label for="notes" class="block text-[11px] font-semibold text-slate-600 mb-1">Description / Note</label>
+              <input type="text" id="notes" placeholder="e.g. 1688 fabric batch #4, Pathao parcel ID, Meta ad campaign" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm">
               Add Record
             </button>
           </form>
         </div>
 
-        <!-- Quick Rate Calculator -->
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <!-- Quick Live Currency Converter -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
-              <span>💱</span> Quick Calculator
+            <h2 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+              <span>💱</span> Quick Currency Calculator
             </h2>
-            <span id="rateStatus" class="text-[11px] text-slate-400">Loading rates...</span>
+            <span id="rateStatus" class="text-[10px] text-slate-400">Loading rates...</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-[11px] font-medium text-slate-600 mb-1">From</label>
-              <select id="convFrom" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+              <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">From</label>
+              <select id="convFrom" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
                 <option value="USD" selected>USD ($)</option>
                 <option value="CNY">CNY / RMB (¥)</option>
                 <option value="BDT">BDT (৳)</option>
                 <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
               </select>
             </div>
             <div>
-              <label class="block text-[11px] font-medium text-slate-600 mb-1">To</label>
-              <select id="convTo" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+              <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">To</label>
+              <select id="convTo" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
                 <option value="BDT" selected>BDT (৳)</option>
                 <option value="USD">USD ($)</option>
                 <option value="CNY">CNY / RMB (¥)</option>
@@ -147,93 +268,210 @@
           </div>
 
           <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">Amount</label>
-            <input type="number" step="any" id="convAmount" value="100" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="convertCurrency()">
+            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Amount</label>
+            <input type="number" step="any" id="convAmount" value="100" class="w-full border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="convertCurrency()">
           </div>
 
-          <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
             <div>
-              <div class="text-[11px] text-slate-500">Converted Total</div>
-              <div id="convResult" class="text-base font-bold text-blue-600">৳ 0.00</div>
+              <div class="text-[10px] text-slate-500">Converted Value</div>
+              <div id="convResult" class="text-sm font-bold text-blue-600">৳ 0.00</div>
             </div>
-            <button type="button" onclick="applyQuickConvertedAmount()" class="px-2.5 py-1 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200">
-              Apply to Form
+            <button type="button" onclick="applyQuickConvertedAmount()" class="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition">
+              Apply to Form ➔
             </button>
           </div>
         </div>
 
       </div>
 
-      <!-- Right Column: Overview Chart & Expense Breakdown -->
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
+      <!-- Right Column: Visual Charts, Budget Progress & Expense Breakdown -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
+        
+        <!-- Trends Chart -->
         <div>
-          <h2 class="text-lg font-semibold text-slate-900 mb-2">Monthly Trend in BDT (Last 6 Months)</h2>
-          <div class="h-56">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-bold text-slate-900">Financial Performance (Sales vs. COGS vs. OpEx)</h2>
+            <span class="text-[11px] text-slate-400">All figures in BDT (৳)</span>
+          </div>
+          <div class="h-60">
             <canvas id="trendChart"></canvas>
           </div>
         </div>
 
+        <!-- Landed COGS vs OpEx Pillar Cards -->
         <div>
-          <h3 class="text-sm font-semibold text-slate-800 mb-3">Expense Breakdown by Group (Selected Month)</h3>
-          <div id="groupBreakdown" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-center mb-4">
-            <!-- Populated via JS -->
-          </div>
-
-          <h3 class="text-sm font-semibold text-slate-800 mb-3">Detailed Category Breakdown</h3>
-          <div id="detailedBreakdown" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            <!-- Populated via JS -->
+          <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Cost Pillars (Selected Range)</h3>
+          <div id="pillarBreakdown" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-center">
+            <!-- Populated dynamically -->
           </div>
         </div>
+
+        <!-- Detailed Category List & Budget Tracking -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Category Breakdown & Budgets</h3>
+            <span class="text-[10px] text-slate-400">Tracked vs monthly limits</span>
+          </div>
+          <div id="detailedBreakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- Transaction History Table -->
-    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 class="text-lg font-semibold text-slate-900">Transaction History</h2>
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="exportCSV()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
+    <!-- Transaction History Table & Data Management -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      
+      <!-- Table Header, Search & Filter Controls -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Transaction History</h2>
+          <p class="text-[11px] text-slate-500" id="tableStatsLabel">Showing 0 transactions</p>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="flex flex-wrap items-center gap-2 no-print">
+          <!-- Text Search -->
+          <div class="relative">
+            <input type="text" id="tableSearch" placeholder="Search notes, ID, tags..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="handleTableFilterChange()">
+            <span class="absolute right-2.5 top-2 text-slate-400 text-xs">🔍</span>
+          </div>
+
+          <!-- Type Filter -->
+          <select id="typeFilter" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none font-medium" onchange="handleTableFilterChange()">
+            <option value="all">All Types</option>
+            <option value="income">Income Only</option>
+            <option value="expense">Expenses Only</option>
+          </select>
+
+          <!-- Export & Backup Buttons -->
+          <button onclick="exportCSV()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">
             Export CSV
           </button>
-          <button onclick="exportJSON()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
-            Backup (JSON)
+          <button onclick="exportJSON()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">
+            Backup JSON
           </button>
-          <label class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300 cursor-pointer">
+          <label class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 cursor-pointer transition">
             Restore Backup
-            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)">
+            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="handleFileSelect(event)">
           </label>
         </div>
       </div>
 
+      <!-- Responsive Table -->
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-xs uppercase">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-[10px] uppercase font-bold tracking-wider">
             <tr>
-              <th class="py-3 px-4">Date</th>
-              <th class="py-3 px-4">Type</th>
-              <th class="py-3 px-4">Category</th>
-              <th class="py-3 px-4">Description</th>
-              <th class="py-3 px-4 text-right">Amount (BDT)</th>
-              <th class="py-3 px-4 text-center">Action</th>
+              <th class="py-2.5 px-3">Date</th>
+              <th class="py-2.5 px-3">Type</th>
+              <th class="py-2.5 px-3">Category</th>
+              <th class="py-2.5 px-3">Description & Receipt</th>
+              <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
+              <th class="py-2.5 px-3 text-center no-print">Actions</th>
             </tr>
           </thead>
           <tbody id="transactionTable" class="divide-y divide-slate-100">
-            <!-- Populated via JS -->
+            <!-- Populated dynamically -->
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination Controls (no-print) -->
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 no-print">
+        <div id="paginationInfo">Page 1 of 1</div>
+        <div class="flex items-center gap-1.5">
+          <button id="prevPageBtn" onclick="changePage(-1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+          <button id="nextPageBtn" onclick="changePage(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+        </div>
+      </div>
+
     </div>
 
   </div>
 
+  <!-- Safe Import & Restore Modal -->
+  <div id="importModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <h3 class="text-base font-bold text-slate-900">Safe Backup Restore</h3>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Choose how you want to restore data from your backup file without losing existing entries.
+      </p>
+
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+        <div class="flex justify-between"><span>Current Records in Tracker:</span> <strong id="modalCurrentCount">0</strong></div>
+        <div class="flex justify-between"><span>Records in File:</span> <strong id="modalIncomingCount">0</strong></div>
+        <div class="flex justify-between text-blue-600"><span>New Non-Duplicate Records:</span> <strong id="modalNewCount">0</strong></div>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="confirmImport('merge')" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
+          Merge (Keep Existing & Add New Records)
+        </button>
+        <button onclick="confirmImport('overwrite')" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition">
+          Full Overwrite (Replace Everything)
+        </button>
+        <button onclick="closeImportModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Settings Modal -->
+  <div id="budgetModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-slate-900">Monthly Category Budgets</h3>
+        <button onclick="closeBudgetModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Set monthly maximum spend limits (BDT ৳) to receive warning alerts when exceeded.</p>
+
+      <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-0.5">Ad Cost (Meta / Ads)</label>
+          <input type="number" id="budget_adCost" placeholder="e.g. 50000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-0.5">China Product Purchase (Sourcing)</label>
+          <input type="number" id="budget_sourcing" placeholder="e.g. 200000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-0.5">Packaging (Poly Bags, Tags, Boxes)</label>
+          <input type="number" id="budget_packaging" placeholder="e.g. 25000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-0.5">Logistics & Courier Delivery</label>
+          <input type="number" id="budget_logistics" placeholder="e.g. 35000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
+        </div>
+      </div>
+
+      <button onclick="saveBudgets()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
+        Save Budget Limits
+      </button>
+    </div>
+  </div>
+
   <!-- JavaScript Logic -->
   <script>
-    const STORAGE_KEY = 'tymino_expense_tracker_data';
-    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    let trendChartInstance = null;
-    let exchangeRates = { USD: 1, BDT: 122, CNY: 7.25, EUR: 0.92 };
-    let quickConvertedRaw = 0;
+    const STORAGE_KEY = 'tymino_v3_data';
+    const PIN_KEY = 'tymino_pin_code';
+    const BUDGET_KEY = 'tymino_budgets';
 
+    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let budgets = JSON.parse(localStorage.getItem(BUDGET_KEY)) || {};
+    let trendChartInstance = null;
+    let exchangeRates = { USD: 1, BDT: 122, CNY: 7.25, EUR: 0.92, GBP: 0.78 };
+    let quickConvertedRaw = 0;
+    
+    // Pagination and Table Filter State
+    let currentPage = 1;
+    const pageSize = 15;
+    let pendingImportData = null;
+
+    // Structured Categories Hierarchy
     const categoriesConfig = {
       income: {
         "Sales Channels": [
@@ -245,31 +483,31 @@
         ]
       },
       expense: {
-        "📦 Sourcing & Production": [
+        "📦 Sourcing & Production (COGS)": [
           "China Product Purchase",
           "Fabric & Raw Materials",
           "Local Factory / Stitching Cost",
           "Sample & Development Cost"
         ],
-        "🏷️ Packaging & Branding": [
+        "🏷️ Packaging & Branding (COGS)": [
           "Poly Bag Purchase",
           "Printer Accessories & Thermal Paper",
           "Custom Tags, Labels & Cards",
           "Packaging Boxes & Tape"
         ],
-        "📢 Marketing & Promotion": [
-          "Ad Cost",
-          "PR Packages & Gifting",
-          "Product Live (Influencer Cost)",
-          "Model Photoshoot & Content"
-        ],
-        "🚚 Logistics & Delivery": [
+        "🚚 Logistics & Delivery (COGS)": [
           "Shipping Cost",
           "Pathao / Courier Delivery Cost",
           "Uber / Local Transit",
           "RTO (Return / Redelivery Cost)"
         ],
-        "🏢 Operations & Team": [
+        "📢 Marketing & Promotion (OpEx)": [
+          "Ad Cost",
+          "PR Packages & Gifting",
+          "Product Live (Influencer Cost)",
+          "Model Photoshoot & Content"
+        ],
+        "🏢 Operations & Team (OpEx)": [
           "Staff Salary & Allowances",
           "Office / Warehouse Rent",
           "Utilities & Internet",
@@ -279,33 +517,116 @@
       }
     };
 
-    // Helper map to find group name for any category
+    // Classify whether a category belongs to Landed COGS or OpEx
+    function isCOGS(categoryName) {
+      const cogsKeywords = [
+        'China Product', 'Purchase', 'Fabric', 'Stitching', 'Sample',
+        'Poly Bag', 'Printer', 'Tags', 'Labels', 'Packaging', 'Boxes', 'Tape',
+        'Shipping', 'Pathao', 'Courier', 'Transit', 'RTO', 'Delivery'
+      ];
+      return cogsKeywords.some(k => categoryName.includes(k));
+    }
+
     function getCategoryGroup(catName) {
       for (const [group, items] of Object.entries(categoriesConfig.expense)) {
         if (items.includes(catName)) return group;
       }
-      if (catName === 'Purchase') return "📦 Sourcing & Production";
-      if (catName === 'Salary') return "🏢 Operations & Team";
-      if (catName.includes('Delivery')) return "🚚 Logistics & Delivery";
-      return "🏢 Operations & Team";
+      if (isCOGS(catName)) return "📦 Sourcing & Production (COGS)";
+      return "🏢 Operations & Team (OpEx)";
     }
 
-    // Initialize Page
+    // Lifecycle Init
     document.addEventListener('DOMContentLoaded', () => {
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      document.getElementById('filterMonth').value = currentMonth;
-      document.getElementById('date').value = now.toISOString().split('T')[0];
-
+      checkPinStatus();
+      initDates();
       updateCategories();
       renderDashboard();
       fetchExchangeRates();
 
-      document.getElementById('filterMonth').addEventListener('change', renderDashboard);
-      document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
+      document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
     });
 
-    // Exchange Rate Fetching
+    // PIN Security Logic
+    function checkPinStatus() {
+      const savedPin = localStorage.getItem(PIN_KEY);
+      if (savedPin) {
+        document.getElementById('pinLockOverlay').classList.remove('hidden');
+      }
+    }
+
+    function unlockWithPin() {
+      const input = document.getElementById('pinInput').value;
+      const savedPin = localStorage.getItem(PIN_KEY);
+      if (input === savedPin) {
+        document.getElementById('pinLockOverlay').classList.add('hidden');
+        document.getElementById('pinError').classList.add('hidden');
+      } else {
+        document.getElementById('pinError').classList.remove('hidden');
+      }
+    }
+
+    function togglePinSettings() {
+      const currentPin = localStorage.getItem(PIN_KEY);
+      if (currentPin) {
+        if (confirm('A PIN is currently active. Do you want to remove the PIN lock?')) {
+          localStorage.removeItem(PIN_KEY);
+          alert('PIN removed successfully.');
+        }
+      } else {
+        const newPin = prompt('Enter a 4-digit PIN to secure your tracker:');
+        if (newPin && newPin.length >= 4) {
+          localStorage.setItem(PIN_KEY, newPin);
+          alert('PIN lock enabled.');
+        }
+      }
+    }
+
+    // Date Preset Logic
+    function initDates() {
+      const now = new Date();
+      document.getElementById('date').value = now.toISOString().split('T')[0];
+    }
+
+    function handleDatePresetChange() {
+      const preset = document.getElementById('datePreset').value;
+      const customBox = document.getElementById('customDateRangeInputs');
+      if (preset === 'custom') {
+        customBox.classList.remove('hidden');
+      } else {
+        customBox.classList.add('hidden');
+      }
+      renderDashboard();
+    }
+
+    function getDateBounds() {
+      const preset = document.getElementById('datePreset').value;
+      const now = new Date();
+      let start = new Date(now.getFullYear(), now.getMonth(), 1);
+      let end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      if (preset === 'last_month') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      } else if (preset === 'this_quarter') {
+        const qMonth = Math.floor(now.getMonth() / 3) * 3;
+        start = new Date(now.getFullYear(), qMonth, 1);
+        end = new Date(now.getFullYear(), qMonth + 3, 0, 23, 59, 59);
+      } else if (preset === 'this_year') {
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      } else if (preset === 'all_time') {
+        start = new Date(2000, 0, 1);
+        end = new Date(2099, 11, 31, 23, 59, 59);
+      } else if (preset === 'custom') {
+        const sVal = document.getElementById('customStartDate').value;
+        const eVal = document.getElementById('customEndDate').value;
+        if (sVal) start = new Date(sVal + 'T00:00:00');
+        if (eVal) end = new Date(eVal + 'T23:59:59');
+      }
+      return { start, end };
+    }
+
+    // Exchange Rates
     async function fetchExchangeRates() {
       try {
         const res = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -313,7 +634,7 @@
         if (data && data.rates) {
           exchangeRates = data.rates;
           document.getElementById('rateStatus').textContent = '● Live rates active';
-          document.getElementById('rateStatus').className = 'text-[11px] text-emerald-600 font-medium';
+          document.getElementById('rateStatus').className = 'text-[10px] text-emerald-600 font-semibold';
         }
       } catch (err) {
         document.getElementById('rateStatus').textContent = '● Standard rates';
@@ -339,6 +660,9 @@
         });
         categorySelect.appendChild(optGroup);
       }
+
+      // Toggle order count visibility
+      document.getElementById('orderCountBox').style.display = (type === 'income') ? 'block' : 'none';
       handleCategoryChange();
     }
 
@@ -361,7 +685,7 @@
         foreignRateLabel.textContent = 'Rate (1 USD = ? ৳)';
         foreignRateInput.value = foreignRateInput.value || usdToBdt;
         foreignAmountInput.placeholder = 'e.g. 50';
-      } else if (category.includes('China Product')) {
+      } else if (category.includes('China Product') || category.includes('Purchase')) {
         helperBox.classList.remove('hidden');
         helperTitle.textContent = 'China RMB (¥) to BDT (৳) Conversion';
         foreignAmountLabel.textContent = 'Amount in RMB / CNY (¥)';
@@ -370,34 +694,36 @@
         foreignAmountInput.placeholder = 'e.g. 1500';
       } else {
         helperBox.classList.add('hidden');
-        foreignAmountInput.value = '';
       }
       calculateFromForeign();
     }
 
     function calculateFromForeign() {
       const category = document.getElementById('category').value;
-      if (!category.includes('Ad Cost') && !category.includes('China Product')) return;
+      if (!category.includes('Ad Cost') && !category.includes('China Product') && !category.includes('Purchase')) return;
 
       const fAmount = parseFloat(document.getElementById('foreignAmount').value) || 0;
       const fRate = parseFloat(document.getElementById('foreignRate').value) || 0;
 
       if (fAmount > 0 && fRate > 0) {
-        const totalBdt = (fAmount * fRate).toFixed(2);
-        document.getElementById('amount').value = totalBdt;
+        document.getElementById('amount').value = (fAmount * fRate).toFixed(2);
       }
     }
 
-    function handleAddTransaction(e) {
+    // Save or Update Transaction
+    function handleSaveTransaction(e) {
       e.preventDefault();
+      const editingId = document.getElementById('editingId').value;
       const type = document.querySelector('input[name="entryType"]:checked').value;
       const category = document.getElementById('category').value;
       const amount = parseFloat(document.getElementById('amount').value);
       const date = document.getElementById('date').value;
       const notes = document.getElementById('notes').value.trim();
+      const receiptLink = document.getElementById('receiptLink').value.trim();
+      const orderCount = parseInt(document.getElementById('orderCount').value) || 0;
 
       let foreignInfo = null;
-      if (category.includes('Ad Cost') || category.includes('China Product')) {
+      if (category.includes('Ad Cost') || category.includes('China Product') || category.includes('Purchase')) {
         const fAmount = parseFloat(document.getElementById('foreignAmount').value);
         const fRate = parseFloat(document.getElementById('foreignRate').value);
         if (fAmount && fRate) {
@@ -410,23 +736,92 @@
         }
       }
 
-      const newEntry = {
-        id: Date.now().toString(),
-        type,
-        category,
-        amount,
-        date,
-        notes,
-        foreignInfo
-      };
+      if (editingId) {
+        // Update existing
+        const idx = transactions.findIndex(t => t.id === editingId);
+        if (idx !== -1) {
+          transactions[idx] = {
+            ...transactions[idx],
+            type,
+            category,
+            amount,
+            date,
+            notes,
+            receiptLink,
+            orderCount,
+            foreignInfo
+          };
+        }
+        cancelEditing();
+      } else {
+        // Create new
+        const newEntry = {
+          id: Date.now().toString(),
+          type,
+          category,
+          amount,
+          date,
+          notes,
+          receiptLink,
+          orderCount,
+          foreignInfo
+        };
+        transactions.push(newEntry);
+      }
 
-      transactions.push(newEntry);
       saveData();
       renderDashboard();
+      resetForm();
+    }
 
+    function editTransaction(id) {
+      const item = transactions.find(t => t.id === id);
+      if (!item) return;
+
+      document.getElementById('editingId').value = item.id;
+      document.getElementById('formTitle').textContent = 'Editing Transaction';
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+      document.getElementById('submitBtn').textContent = 'Save Changes';
+      document.getElementById('submitBtn').className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm';
+
+      // Set Type
+      const radios = document.getElementsByName('entryType');
+      for (const r of radios) {
+        if (r.value === item.type) r.checked = true;
+      }
+      updateCategories();
+
+      document.getElementById('category').value = item.category;
+      document.getElementById('amount').value = item.amount;
+      document.getElementById('date').value = item.date;
+      document.getElementById('notes').value = item.notes || '';
+      document.getElementById('receiptLink').value = item.receiptLink || '';
+      document.getElementById('orderCount').value = item.orderCount || '';
+
+      handleCategoryChange();
+      if (item.foreignInfo) {
+        document.getElementById('foreignAmount').value = item.foreignInfo.amount;
+        document.getElementById('foreignRate').value = item.foreignInfo.rate;
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEditing() {
+      document.getElementById('editingId').value = '';
+      document.getElementById('formTitle').textContent = 'Log New Transaction';
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+      document.getElementById('submitBtn').textContent = 'Add Record';
+      document.getElementById('submitBtn').className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm';
+      resetForm();
+    }
+
+    function resetForm() {
       document.getElementById('amount').value = '';
       document.getElementById('foreignAmount').value = '';
       document.getElementById('notes').value = '';
+      document.getElementById('receiptLink').value = '';
+      document.getElementById('orderCount').value = '';
     }
 
     function deleteTransaction(id) {
@@ -441,19 +836,26 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
     }
 
+    // Dashboard Calculations & Rendering
     function renderDashboard() {
-      const selectedMonth = document.getElementById('filterMonth').value; // YYYY-MM
-      const filtered = transactions.filter(item => item.date.startsWith(selectedMonth));
+      const { start, end } = getDateBounds();
+      const filtered = transactions.filter(t => {
+        const tDate = new Date(t.date + 'T12:00:00');
+        return tDate >= start && tDate <= end;
+      });
 
       let revenue = 0;
-      let expenses = 0;
-      
+      let totalOrders = 0;
+      let totalAdCost = 0;
+      let totalCOGS = 0;
+      let totalOpEx = 0;
+
       const groupTotals = {
-        "📦 Sourcing & Production": 0,
-        "🏷️ Packaging & Branding": 0,
-        "📢 Marketing & Promotion": 0,
-        "🚚 Logistics & Delivery": 0,
-        "🏢 Operations & Team": 0
+        "📦 Sourcing & Production (COGS)": 0,
+        "🏷️ Packaging & Branding (COGS)": 0,
+        "🚚 Logistics & Delivery (COGS)": 0,
+        "📢 Marketing & Promotion (OpEx)": 0,
+        "🏢 Operations & Team (OpEx)": 0
       };
 
       const categoryTotals = {};
@@ -461,129 +863,217 @@
       filtered.forEach(item => {
         if (item.type === 'income') {
           revenue += item.amount;
+          totalOrders += (item.orderCount || 1);
         } else {
-          expenses += item.amount;
-          
           let cat = item.category;
           if (cat === 'Purchase') cat = 'China Product Purchase';
-          if (cat === 'Salary') cat = 'Staff Salary & Allowances';
-
           categoryTotals[cat] = (categoryTotals[cat] || 0) + item.amount;
 
-          const grp = getCategoryGroup(cat);
-          if (groupTotals[grp] !== undefined) {
-            groupTotals[grp] += item.amount;
+          if (isCOGS(cat)) {
+            totalCOGS += item.amount;
           } else {
-            groupTotals["🏢 Operations & Team"] += item.amount;
+            totalOpEx += item.amount;
           }
+
+          if (cat.includes('Ad Cost')) totalAdCost += item.amount;
+
+          const grp = getCategoryGroup(cat);
+          if (groupTotals[grp] !== undefined) groupTotals[grp] += item.amount;
+          else groupTotals["🏢 Operations & Team (OpEx)"] += item.amount;
         }
       });
 
-      const netProfit = revenue - expenses;
-      const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+      const totalExpenses = totalCOGS + totalOpEx;
+      const grossProfit = revenue - totalCOGS;
+      const netProfit = revenue - totalExpenses;
 
-      // Update Summary Cards
+      const grossMargin = revenue > 0 ? ((grossProfit / revenue) * 100).toFixed(1) : 0;
+      const netMargin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+      const roas = totalAdCost > 0 ? (revenue / totalAdCost).toFixed(2) + 'x' : 'N/A';
+      const aov = totalOrders > 0 ? formatBDT(revenue / totalOrders) : '৳ 0';
+
+      // Update KPI Cards
       document.getElementById('totalRevenue').textContent = formatBDT(revenue);
-      document.getElementById('totalExpenses').textContent = formatBDT(expenses);
+      document.getElementById('ordersSubtitle').textContent = `${totalOrders} orders recorded`;
+
+      document.getElementById('totalCOGS').textContent = formatBDT(totalCOGS);
+      document.getElementById('grossProfit').textContent = formatBDT(grossProfit);
+      document.getElementById('grossMarginBadge').textContent = `${grossMargin}% margin`;
+
+      document.getElementById('totalOpEx').textContent = formatBDT(totalOpEx);
       
       const netProfitEl = document.getElementById('netProfit');
       netProfitEl.textContent = formatBDT(netProfit);
-      netProfitEl.className = `text-2xl font-bold mt-2 ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
-      
-      document.getElementById('profitMargin').textContent = `${margin}%`;
+      netProfitEl.className = `text-xl font-bold mt-1 ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+      document.getElementById('netMarginBadge').textContent = `${netMargin}% margin`;
 
-      // Update Group Breakdown Cards
-      const groupContainer = document.getElementById('groupBreakdown');
-      groupContainer.innerHTML = Object.entries(groupTotals).map(([grp, amt]) => `
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-          <div class="text-xs text-slate-500 truncate" title="${grp}">${grp}</div>
-          <div class="text-sm font-semibold text-slate-900 mt-1">${formatBDT(amt)}</div>
+      document.getElementById('roasBadge').textContent = roas;
+      document.getElementById('aovText').textContent = `AOV: ${aov}`;
+      document.getElementById('adSpendSubtitle').textContent = `Ad Spend: ${formatBDT(totalAdCost)}`;
+
+      // Render Cost Pillars
+      const pillarContainer = document.getElementById('pillarBreakdown');
+      pillarContainer.innerHTML = Object.entries(groupTotals).map(([grp, amt]) => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <div class="text-[10px] font-bold text-slate-500 truncate" title="${grp}">${grp}</div>
+          <div class="text-sm font-extrabold text-slate-900 mt-1">${formatBDT(amt)}</div>
         </div>
       `).join('');
 
-      // Update Detailed Active Category Breakdown
+      // Render Detailed Categories with Budgets
       const detailedContainer = document.getElementById('detailedBreakdown');
       const activeCats = Object.entries(categoryTotals).sort((a, b) => b - a);
       if (activeCats.length === 0) {
-        detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-2">No expenses recorded for this month.</div>`;
+        detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-3">No expense line items in this period.</div>`;
       } else {
-        detailedContainer.innerHTML = activeCats.map(([cat, amt]) => `
-          <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs">
-            <span class="text-slate-600 truncate pr-2" title="${cat}">${cat}</span>
-            <span class="font-semibold text-slate-800">${formatBDT(amt)}</span>
-          </div>
-        `).join('');
-      }
-
-      // Update Transactions Table
-      const tableBody = document.getElementById('transactionTable');
-      tableBody.innerHTML = '';
-      
-      const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
-      if (sorted.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No records found for this month.</td></tr>`;
-      } else {
-        sorted.forEach(item => {
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-slate-50';
-
-          let displayCategory = item.category;
-          if (displayCategory === 'Purchase') displayCategory = 'China Product Purchase';
-          if (displayCategory === 'Salary') displayCategory = 'Staff Salary & Allowances';
-
-          let foreignBadge = '';
-          if (item.foreignInfo) {
-            foreignBadge = `<div class="text-[11px] text-slate-400 mt-0.5 font-normal">(${item.foreignInfo.symbol}${item.foreignInfo.amount.toLocaleString()} @ ৳${item.foreignInfo.rate}/${item.foreignInfo.currency})</div>`;
+        detailedContainer.innerHTML = activeCats.map(([cat, amt]) => {
+          let budgetInfo = '';
+          const bKey = cat.includes('Ad Cost') ? 'adCost' : cat.includes('China') ? 'sourcing' : cat.includes('Poly') ? 'packaging' : cat.includes('Delivery') ? 'logistics' : null;
+          if (bKey && budgets[bKey]) {
+            const bLimit = budgets[bKey];
+            const pct = Math.min(100, Math.round((amt / bLimit) * 100));
+            const isOver = amt > bLimit;
+            budgetInfo = `
+              <div class="mt-1 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full ${isOver ? 'bg-rose-500' : 'bg-blue-600'}" style="width: ${pct}%"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                <span>Budget: ${formatBDT(bLimit)}</span>
+                <span class="${isOver ? 'text-rose-600 font-bold' : ''}">${pct}% used</span>
+              </div>
+            `;
           }
 
-          row.innerHTML = `
-            <td class="py-3 px-4 text-slate-600 whitespace-nowrap">${item.date}</td>
-            <td class="py-3 px-4">
-              <span class="inline-block px-2 py-0.5 text-xs font-medium rounded ${item.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${item.type === 'income' ? 'Income' : 'Expense'}
-              </span>
-            </td>
-            <td class="py-3 px-4 font-medium text-slate-800">${displayCategory}</td>
-            <td class="py-3 px-4 text-slate-500">${item.notes || '-'}</td>
-            <td class="py-3 px-4 text-right font-semibold ${item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
-              <div>${item.type === 'income' ? '+' : '-'}${formatBDT(item.amount)}</div>
-              ${foreignBadge}
-            </td>
-            <td class="py-3 px-4 text-center">
-              <button onclick="deleteTransaction('${item.id}')" class="text-slate-400 hover:text-rose-600 text-xs font-semibold">Delete</button>
-            </td>
+          return `
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-slate-700 truncate pr-2" title="${cat}">${cat}</span>
+                <span class="font-bold text-slate-900">${formatBDT(amt)}</span>
+              </div>
+              ${budgetInfo}
+            </div>
           `;
-          tableBody.appendChild(row);
-        });
+        }).join('');
       }
 
+      renderTable();
       renderTrendChart();
     }
 
+    // Filter & Paginate Transaction Table
+    function handleTableFilterChange() {
+      currentPage = 1;
+      renderTable();
+    }
+
+    function renderTable() {
+      const { start, end } = getDateBounds();
+      const searchQuery = document.getElementById('tableSearch').value.toLowerCase();
+      const typeFilter = document.getElementById('typeFilter').value;
+
+      let filtered = transactions.filter(t => {
+        const tDate = new Date(t.date + 'T12:00:00');
+        const matchesDate = tDate >= start && tDate <= end;
+        const matchesType = (typeFilter === 'all') || (t.type === typeFilter);
+        const searchStr = `${t.category} ${t.notes || ''} ${t.amount} ${t.date} ${t.foreignInfo ? t.foreignInfo.amount : ''}`.toLowerCase();
+        const matchesSearch = !searchQuery || searchStr.includes(searchQuery);
+        return matchesDate && matchesType && matchesSearch;
+      });
+
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('tableStatsLabel').textContent = `Showing ${filtered.length} transactions`;
+
+      const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      document.getElementById('paginationInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prevPageBtn').disabled = (currentPage === 1);
+      document.getElementById('nextPageBtn').disabled = (currentPage === totalPages);
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+
+      const tableBody = document.getElementById('transactionTable');
+      tableBody.innerHTML = '';
+
+      if (pageItems.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No transactions match your search or filter.</td></tr>`;
+        return;
+      }
+
+      pageItems.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50 transition';
+
+        let foreignBadge = '';
+        if (item.foreignInfo) {
+          foreignBadge = `<div class="text-[10px] text-slate-400">(${item.foreignInfo.symbol}${item.foreignInfo.amount.toLocaleString()} @ ৳${item.foreignInfo.rate}/${item.foreignInfo.currency})</div>`;
+        }
+
+        let linkBadge = '';
+        if (item.receiptLink) {
+          linkBadge = `<a href="${item.receiptLink}" target="_blank" class="inline-block ml-1 text-blue-600 hover:underline font-semibold text-[11px]">🔗 Receipt</a>`;
+        }
+
+        let ordersBadge = item.orderCount ? `<span class="inline-block ml-1 px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">${item.orderCount} orders</span>` : '';
+
+        row.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${item.date}</td>
+          <td class="py-2.5 px-3">
+            <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded ${item.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+              ${item.type === 'income' ? 'Income' : 'Expense'}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-slate-800">${item.category}</td>
+          <td class="py-2.5 px-3 text-slate-500">
+            <span>${item.notes || '-'}</span>
+            ${ordersBadge}
+            ${linkBadge}
+          </td>
+          <td class="py-2.5 px-3 text-right font-bold ${item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+            <div>${item.type === 'income' ? '+' : '-'}${formatBDT(item.amount)}</div>
+            ${foreignBadge}
+          </td>
+          <td class="py-2.5 px-3 text-center whitespace-nowrap no-print">
+            <button onclick="editTransaction('${item.id}')" class="text-blue-600 hover:text-blue-800 font-semibold text-[11px] mr-2">Edit</button>
+            <button onclick="deleteTransaction('${item.id}')" class="text-slate-400 hover:text-rose-600 font-semibold text-[11px]">Delete</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function changePage(direction) {
+      currentPage += direction;
+      renderTable();
+    }
+
+    // Chart.js Visualization
     function renderTrendChart() {
       const months = [];
       const revenueData = [];
-      const expenseData = [];
+      const cogsData = [];
+      const opexData = [];
       const profitData = [];
 
       const today = new Date();
       for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const mLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
-        months.push(mLabel);
+        months.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
 
-        const mTransactions = transactions.filter(t => t.date.startsWith(mKey));
-        let mRev = 0;
-        let mExp = 0;
-        mTransactions.forEach(t => {
+        const mItems = transactions.filter(t => t.date.startsWith(mKey));
+        let mRev = 0, mCOGS = 0, mOpEx = 0;
+        mItems.forEach(t => {
           if (t.type === 'income') mRev += t.amount;
-          else mExp += t.amount;
+          else if (isCOGS(t.category)) mCOGS += t.amount;
+          else mOpEx += t.amount;
         });
 
         revenueData.push(mRev);
-        expenseData.push(mExp);
-        profitData.push(mRev - mExp);
+        cogsData.push(mCOGS);
+        opexData.push(mOpEx);
+        profitData.push(mRev - (mCOGS + mOpEx));
       }
 
       const ctx = document.getElementById('trendChart').getContext('2d');
@@ -594,45 +1084,42 @@
         data: {
           labels: months,
           datasets: [
-            { label: 'Sales (৳)', data: revenueData, backgroundColor: '#10b981' },
-            { label: 'Expenses (৳)', data: expenseData, backgroundColor: '#f43f5e' },
-            { label: 'Profit/Loss (৳)', data: profitData, type: 'line', borderColor: '#3b82f6', tension: 0.2, fill: false }
+            { label: 'Sales (৳)', data: revenueData, backgroundColor: '#10b981', borderRadius: 4 },
+            { label: 'COGS (৳)', data: cogsData, backgroundColor: '#f59e0b', borderRadius: 4 },
+            { label: 'OpEx (৳)', data: opexData, backgroundColor: '#f43f5e', borderRadius: 4 },
+            { label: 'Net Profit (৳)', data: profitData, type: 'line', borderColor: '#2563eb', tension: 0.25, fill: false, borderWidth: 2.5 }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-            x: { grid: { display: false } }
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } }
           },
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12 } }
+            legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
           }
         }
       });
     }
 
     function formatBDT(val) {
-      return '৳ ' + Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return '৳ ' + Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // Standalone Quick Converter
+    // Quick Converter
     function convertCurrency() {
       const from = document.getElementById('convFrom').value;
       const to = document.getElementById('convTo').value;
       const amount = parseFloat(document.getElementById('convAmount').value) || 0;
 
-      const rateFrom = exchangeRates[from] || 1;
-      const rateTo = exchangeRates[to] || 1;
-
-      const inUSD = amount / rateFrom;
-      const converted = inUSD * rateTo;
+      const inUSD = amount / (exchangeRates[from] || 1);
+      const converted = inUSD * (exchangeRates[to] || 1);
       quickConvertedRaw = converted;
 
-      const symbols = { BDT: '৳', USD: '$', CNY: '¥', EUR: '€' };
-      const sym = symbols[to] || '';
-      document.getElementById('convResult').textContent = `${sym} ${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const symbols = { BDT: '৳', USD: '$', CNY: '¥', EUR: '€', GBP: '£' };
+      document.getElementById('convResult').textContent = `${symbols[to] || ''} ${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
     function applyQuickConvertedAmount() {
@@ -642,17 +1129,98 @@
       }
     }
 
-    // Export to CSV
+    // Safe Import & Non-Destructive Restore
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (Array.isArray(parsed)) {
+            pendingImportData = parsed;
+            
+            // Calculate unique vs duplicates
+            const existingKeys = new Set(transactions.map(t => `${t.date}_${t.type}_${t.category}_${t.amount}`));
+            let newCount = 0;
+            parsed.forEach(p => {
+              const k = `${p.date}_${p.type}_${p.category}_${p.amount}`;
+              if (!existingKeys.has(k)) newCount++;
+            });
+
+            document.getElementById('modalCurrentCount').textContent = transactions.length;
+            document.getElementById('modalIncomingCount').textContent = parsed.length;
+            document.getElementById('modalNewCount').textContent = newCount;
+            document.getElementById('importModal').classList.remove('hidden');
+          } else {
+            alert('Invalid backup format.');
+          }
+        } catch (err) {
+          alert('Failed to read JSON backup file.');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function confirmImport(mode) {
+      if (!pendingImportData) return;
+      if (mode === 'merge') {
+        const existingKeys = new Set(transactions.map(t => `${t.date}_${t.type}_${t.category}_${t.amount}`));
+        pendingImportData.forEach(p => {
+          const k = `${p.date}_${p.type}_${p.category}_${p.amount}`;
+          if (!existingKeys.has(k)) {
+            transactions.push({ ...p, id: Date.now() + Math.random().toString() });
+          }
+        });
+        alert('New records merged successfully.');
+      } else if (mode === 'overwrite') {
+        transactions = pendingImportData;
+        alert('All records replaced from backup.');
+      }
+      saveData();
+      renderDashboard();
+      closeImportModal();
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').classList.add('hidden');
+      pendingImportData = null;
+    }
+
+    // Budget Modal
+    function openBudgetModal() {
+      document.getElementById('budget_adCost').value = budgets.adCost || '';
+      document.getElementById('budget_sourcing').value = budgets.sourcing || '';
+      document.getElementById('budget_packaging').value = budgets.packaging || '';
+      document.getElementById('budget_logistics').value = budgets.logistics || '';
+      document.getElementById('budgetModal').classList.remove('hidden');
+    }
+
+    function closeBudgetModal() {
+      document.getElementById('budgetModal').classList.add('hidden');
+    }
+
+    function saveBudgets() {
+      budgets = {
+        adCost: parseFloat(document.getElementById('budget_adCost').value) || 0,
+        sourcing: parseFloat(document.getElementById('budget_sourcing').value) || 0,
+        packaging: parseFloat(document.getElementById('budget_packaging').value) || 0,
+        logistics: parseFloat(document.getElementById('budget_logistics').value) || 0
+      };
+      localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
+      closeBudgetModal();
+      renderDashboard();
+    }
+
+    // Export CSV
     function exportCSV() {
       if (transactions.length === 0) return alert('No transactions to export.');
-      let csv = 'ID,Date,Type,Group,Category,Amount (BDT),Foreign Info,Description\n';
+      let csv = 'ID,Date,Type,Category,COGS_or_OpEx,Amount_BDT,Foreign_Info,Orders_Count,Receipt_Link,Notes\n';
       transactions.forEach(t => {
         let fStr = t.foreignInfo ? `${t.foreignInfo.symbol}${t.foreignInfo.amount} @ ${t.foreignInfo.rate}` : '';
-        let cat = t.category;
-        if (cat === 'Purchase') cat = 'China Product Purchase';
-        if (cat === 'Salary') cat = 'Staff Salary & Allowances';
-        const grp = t.type === 'income' ? 'Income' : getCategoryGroup(cat);
-        csv += `"${t.id}","${t.date}","${t.type}","${grp}","${cat}","${t.amount}","${fStr}","${(t.notes || '').replace(/"/g, '""')}"\n`;
+        const cogsLabel = t.type === 'income' ? 'Revenue' : (isCOGS(t.category) ? 'COGS' : 'OpEx');
+        csv += `"${t.id}","${t.date}","${t.type}","${t.category}","${cogsLabel}","${t.amount}","${fStr}","${t.orderCount || ''}","${t.receiptLink || ''}","${(t.notes || '').replace(/"/g, '""')}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -662,35 +1230,13 @@
       a.click();
     }
 
-    // Backup & Restore
+    // Export JSON Backup
     function exportJSON() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
       const a = document.createElement('a');
       a.href = dataStr;
       a.download = `tymino_backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
-    }
-
-    function importJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (Array.isArray(imported)) {
-            transactions = imported;
-            saveData();
-            renderDashboard();
-            alert('Backup restored successfully.');
-          } else {
-            alert('Invalid backup file format.');
-          }
-        } catch (err) {
-          alert('Failed to parse JSON file.');
-        }
-      };
-      reader.readAsText(file);
     }
   </script>
 </body>
