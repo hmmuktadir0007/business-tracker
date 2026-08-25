@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TYMINO: Business Expense & Profit Tracker</title>
+  <title>TYMINO: Business Expense & Inventory Tracker</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
@@ -19,12 +19,12 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen p-3 md:p-6">
 
-  <!-- PIN Lock Screen Overlay (Hidden if not locked) -->
+  <!-- PIN Lock Screen Overlay -->
   <div id="pinLockOverlay" class="hidden fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center space-y-4">
       <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl">🔒</div>
       <div>
-        <h2 class="text-xl font-bold text-slate-900">TYMINO Financials</h2>
+        <h2 class="text-xl font-bold text-slate-900">TYMINO Management</h2>
         <p class="text-xs text-slate-500 mt-1">Enter your 4-digit PIN to access the dashboard</p>
       </div>
       <input type="password" id="pinInput" maxlength="6" placeholder="Enter PIN" class="w-full text-center tracking-widest text-2xl font-bold py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
@@ -35,356 +35,416 @@
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto space-y-6">
+  <div class="max-w-7xl mx-auto space-y-5">
 
-    <!-- Header Bar -->
-    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight"><span class="text-blue-600">TYMINO:</span> Expense & Profit Tracker</h1>
-          <span class="px-2 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full">Pro P&L</span>
+    <!-- Top Navigation & Header Bar -->
+    <header class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight"><span class="text-blue-600">TYMINO:</span> Hub</h1>
+            <span class="px-2 py-0.5 text-[11px] font-bold bg-blue-100 text-blue-800 rounded-full">Finance & Inventory Pro</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">Sourcing (RMB), Landed COGS, Pricing Formulas, Stock Levels & Profit in BDT (৳)</p>
         </div>
-        <p class="text-xs text-slate-500 mt-1">E-Commerce Landed COGS, ROAS, Foreign Currency Sourcing & Unit Economics (BDT ৳)</p>
+
+        <!-- Main Navigation Tabs -->
+        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 no-print self-start lg:self-auto">
+          <button id="navTabFinance" onclick="switchMainTab('finance')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-blue-700 shadow-xs">
+            📊 Financial P&L Tracker
+          </button>
+          <button id="navTabInventory" onclick="switchMainTab('inventory')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            📦 Product Inventory & Pricing
+          </button>
+        </div>
       </div>
 
-      <!-- Quick Action Controls -->
-      <div class="flex flex-wrap items-center gap-2.5 no-print">
-        <!-- Date Preset Dropdown -->
-        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs">
-          <label for="datePreset" class="font-medium text-slate-600">View:</label>
-          <select id="datePreset" class="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer" onchange="handleDatePresetChange()">
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="this_quarter">This Quarter</option>
-            <option value="this_year">This Year (YTD)</option>
-            <option value="all_time">All Time</option>
-            <option value="custom">Custom Date Range</option>
-          </select>
+      <!-- Financial Sub-bar Controls (Only visible on Finance Tab) -->
+      <div id="financeControlsBar" class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-100 no-print">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs">
+            <label for="datePreset" class="font-medium text-slate-600">View Period:</label>
+            <select id="datePreset" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer" onchange="handleDatePresetChange()">
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_quarter">This Quarter</option>
+              <option value="this_year">This Year (YTD)</option>
+              <option value="all_time">All Time</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          <div id="customDateRangeInputs" class="hidden flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2 py-1 text-xs">
+            <input type="date" id="customStartDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
+            <span class="text-slate-400">to</span>
+            <input type="date" id="customEndDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
+          </div>
         </div>
 
-        <!-- Custom Date Range Inputs (Visible when Custom is selected) -->
-        <div id="customDateRangeInputs" class="hidden flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2 py-1 text-xs">
-          <input type="date" id="customStartDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
-          <span class="text-slate-400">to</span>
-          <input type="date" id="customEndDate" class="bg-transparent text-slate-800 focus:outline-none" onchange="renderDashboard()">
+        <div class="flex items-center gap-2">
+          <button onclick="openBudgetModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition">
+            📊 Budgets
+          </button>
+          <button onclick="togglePinSettings()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition">
+            🔒 PIN Lock
+          </button>
+          <button onclick="window.print()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-xl border border-blue-200 transition">
+            🖨️ Print Report
+          </button>
         </div>
-
-        <!-- Tool Buttons -->
-        <button onclick="openBudgetModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 flex items-center gap-1 transition">
-          📊 Budgets
-        </button>
-        <button onclick="togglePinSettings()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 flex items-center gap-1 transition">
-          🔒 PIN Lock
-        </button>
-        <button onclick="window.print()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-xl border border-blue-200 flex items-center gap-1 transition">
-          🖨️ Print / PDF
-        </button>
       </div>
     </header>
 
-    <!-- Top Financial & E-Commerce Metrics Grid -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-      <!-- 1. Total Sales -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Sales</p>
-        <p id="totalRevenue" class="text-xl font-bold text-emerald-600 mt-1">৳ 0.00</p>
-        <p id="ordersSubtitle" class="text-[10px] text-slate-400 mt-0.5">0 orders recorded</p>
-      </div>
+    <!-- ========================================== -->
+    <!-- TAB 1: FINANCIAL P&L TRACKER VIEW          -->
+    <!-- ========================================== -->
+    <div id="viewFinanceSection" class="space-y-6">
 
-      <!-- 2. Landed COGS -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Landed COGS</p>
-          <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Product</span>
+      <!-- Financial KPI Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Total Sales</p>
+          <p id="totalRevenue" class="text-xl font-bold text-emerald-600 mt-1">৳ 0.00</p>
+          <p id="ordersSubtitle" class="text-[10px] text-slate-400 mt-0.5">0 orders</p>
         </div>
-        <p id="totalCOGS" class="text-xl font-bold text-amber-600 mt-1">৳ 0.00</p>
-        <p id="cogsMarginSubtitle" class="text-[10px] text-slate-400 mt-0.5">Sourcing + Pack + Ship</p>
-      </div>
-
-      <!-- 3. Gross Profit -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Gross Profit</p>
-          <span id="grossMarginBadge" class="text-[9px] font-semibold bg-blue-100 text-blue-800 px-1 rounded">0%</span>
-        </div>
-        <p id="grossProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Revenue − COGS</p>
-      </div>
-
-      <!-- 4. Operating Expenses (OpEx) -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Operating (OpEx)</p>
-          <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Burn</span>
-        </div>
-        <p id="totalOpEx" class="text-xl font-bold text-rose-600 mt-1">৳ 0.00</p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Ads, Salaries, Rent, Tools</p>
-      </div>
-
-      <!-- 5. Net Profit / Loss -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Net Profit</p>
-          <span id="netMarginBadge" class="text-[9px] font-semibold bg-emerald-100 text-emerald-800 px-1 rounded">0%</span>
-        </div>
-        <p id="netProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Bottom line</p>
-      </div>
-
-      <!-- 6. Marketing ROAS & AOV -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">ROAS & AOV</p>
-          <span id="roasBadge" class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">0.0x</span>
-        </div>
-        <p id="aovText" class="text-sm font-bold text-slate-800 mt-1">AOV: ৳ 0</p>
-        <p id="adSpendSubtitle" class="text-[10px] text-slate-400 mt-0.5">Ad Spend: ৳ 0</p>
-      </div>
-    </div>
-
-    <!-- Main Workspace Grid: Form (Left) & Charts/Breakdowns (Right) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      <!-- Left Column: Form & Quick Calculator (no-print) -->
-      <div class="space-y-6 lg:col-span-1 no-print">
-        
-        <!-- Transaction Entry / Edit Form -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
-          <!-- Form Header -->
-          <div class="flex items-center justify-between mb-3">
-            <h2 id="formTitle" class="text-base font-bold text-slate-900">Log New Transaction</h2>
-            <button id="cancelEditBtn" onclick="cancelEditing()" class="hidden text-xs text-rose-600 hover:text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded">
-              ✕ Cancel Edit
-            </button>
-          </div>
-
-          <form id="transactionForm" class="space-y-3.5">
-            <input type="hidden" id="editingId" value="">
-
-            <!-- Transaction Type -->
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Transaction Type</label>
-              <div class="grid grid-cols-2 gap-2">
-                <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
-                  <input type="radio" name="entryType" value="income" class="mr-1.5" checked onchange="updateCategories()">
-                  <span>Income / Sales</span>
-                </label>
-                <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
-                  <input type="radio" name="entryType" value="expense" class="mr-1.5" onchange="updateCategories()">
-                  <span>Expense</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Category Dropdown with <optgroup> -->
-            <div>
-              <label for="category" class="block text-[11px] font-semibold text-slate-600 mb-1">Category Header</label>
-              <select id="category" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" onchange="handleCategoryChange()"></select>
-            </div>
-
-            <!-- Optional Unit / Order Count (Visible for Income entries) -->
-            <div id="orderCountBox">
-              <label for="orderCount" class="block text-[11px] font-semibold text-slate-600 mb-1">Number of Orders / Units (Optional)</label>
-              <input type="number" min="1" id="orderCount" placeholder="e.g. 5 orders or 10 pcs" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- Dynamic Currency Converter Box (for Ad Cost USD & China Sourcing RMB) -->
-            <div id="currencyHelperBox" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
-              <div class="flex items-center justify-between text-xs font-bold text-blue-900">
-                <span id="helperBoxTitle">Foreign Currency Conversion</span>
-                <span class="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-medium">Auto-fills BDT</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label id="foreignAmountLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Amount in Foreign</label>
-                  <input type="number" step="any" id="foreignAmount" placeholder="0.00" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
-                </div>
-                <div>
-                  <label id="foreignRateLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Rate (1 unit = ? ৳)</label>
-                  <input type="number" step="any" id="foreignRate" placeholder="122.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
-                </div>
-              </div>
-            </div>
-
-            <!-- Final Amount in BDT -->
-            <div>
-              <label for="amount" class="block text-[11px] font-semibold text-slate-600 mb-1">Final Amount (BDT ৳)</label>
-              <input type="number" step="0.01" min="0.01" id="amount" required placeholder="0.00" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- Date -->
-            <div>
-              <label for="date" class="block text-[11px] font-semibold text-slate-600 mb-1">Date</label>
-              <input type="date" id="date" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-            </div>
-
-            <!-- Receipt / Invoice Link (Optional) -->
-            <div>
-              <label for="receiptLink" class="block text-[11px] font-semibold text-slate-600 mb-1">Receipt / Invoice Link (Optional)</label>
-              <input type="url" id="receiptLink" placeholder="e.g. Google Drive link, invoice URL" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- Notes -->
-            <div>
-              <label for="notes" class="block text-[11px] font-semibold text-slate-600 mb-1">Description / Note</label>
-              <input type="text" id="notes" placeholder="e.g. 1688 fabric batch #4, Pathao parcel ID, Meta ad campaign" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm">
-              Add Record
-            </button>
-          </form>
-        </div>
-
-        <!-- Quick Live Currency Converter -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <span>💱</span> Quick Currency Calculator
-            </h2>
-            <span id="rateStatus" class="text-[10px] text-slate-400">Loading rates...</span>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Landed COGS</p>
+            <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Product</span>
+          </div>
+          <p id="totalCOGS" class="text-xl font-bold text-amber-600 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Sourcing+Pack+Ship</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Gross Profit</p>
+            <span id="grossMarginBadge" class="text-[9px] font-semibold bg-blue-100 text-blue-800 px-1 rounded">0%</span>
+          </div>
+          <p id="grossProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Revenue − COGS</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Operating (OpEx)</p>
+            <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">Burn</span>
+          </div>
+          <p id="totalOpEx" class="text-xl font-bold text-rose-600 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Ads, Salaries, Rent</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Net Profit</p>
+            <span id="netMarginBadge" class="text-[9px] font-semibold bg-emerald-100 text-emerald-800 px-1 rounded">0%</span>
+          </div>
+          <p id="netProfit" class="text-xl font-bold text-slate-900 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Bottom line</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">ROAS & AOV</p>
+            <span id="roasBadge" class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">0.0x</span>
+          </div>
+          <p id="aovText" class="text-sm font-bold text-slate-800 mt-1">AOV: ৳ 0</p>
+          <p id="adSpendSubtitle" class="text-[10px] text-slate-400 mt-0.5">Ad Spend: ৳ 0</p>
+        </div>
+      </div>
+
+      <!-- Main Financial Content Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Form & Calculator -->
+        <div class="space-y-6 lg:col-span-1 no-print">
+          
+          <!-- Transaction Entry Form -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
+            <div class="flex items-center justify-between mb-3">
+              <h2 id="formTitle" class="text-base font-bold text-slate-900">Log Transaction</h2>
+              <button id="cancelEditBtn" onclick="cancelEditing()" class="hidden text-xs text-rose-600 hover:text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded">
+                ✕ Cancel Edit
+              </button>
+            </div>
+
+            <form id="transactionForm" class="space-y-3.5">
+              <input type="hidden" id="editingId" value="">
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Transaction Type</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                    <input type="radio" name="entryType" value="income" class="mr-1.5" checked onchange="updateCategories()">
+                    <span>Income / Sales</span>
+                  </label>
+                  <label class="flex items-center justify-center p-2 text-xs font-semibold border rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                    <input type="radio" name="entryType" value="expense" class="mr-1.5" onchange="updateCategories()">
+                    <span>Expense</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label for="category" class="block text-[11px] font-semibold text-slate-600 mb-1">Category Header</label>
+                <select id="category" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" onchange="handleCategoryChange()"></select>
+              </div>
+
+              <div id="orderCountBox">
+                <label for="orderCount" class="block text-[11px] font-semibold text-slate-600 mb-1">Number of Orders / Units (Optional)</label>
+                <input type="number" min="1" id="orderCount" placeholder="e.g. 5 orders or 10 pcs" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <!-- Foreign Currency Conversion Helper -->
+              <div id="currencyHelperBox" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-blue-900">
+                  <span id="helperBoxTitle">Foreign Currency Conversion</span>
+                  <span class="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-medium">Auto-fills BDT</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label id="foreignAmountLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Amount in Foreign</label>
+                    <input type="number" step="any" id="foreignAmount" placeholder="0.00" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
+                  </div>
+                  <div>
+                    <label id="foreignRateLabel" class="block text-[10px] font-semibold text-blue-800 mb-0.5">Rate (1 unit = ? ৳)</label>
+                    <input type="number" step="any" id="foreignRate" placeholder="122.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold" oninput="calculateFromForeign()">
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label for="amount" class="block text-[11px] font-semibold text-slate-600 mb-1">Final Amount (BDT ৳)</label>
+                <input type="number" step="0.01" min="0.01" id="amount" required placeholder="0.00" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div>
+                <label for="date" class="block text-[11px] font-semibold text-slate-600 mb-1">Date</label>
+                <input type="date" id="date" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+              </div>
+
+              <div>
+                <label for="receiptLink" class="block text-[11px] font-semibold text-slate-600 mb-1">Receipt / Invoice Link (Optional)</label>
+                <input type="url" id="receiptLink" placeholder="e.g. Google Drive receipt link" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div>
+                <label for="notes" class="block text-[11px] font-semibold text-slate-600 mb-1">Description / Note</label>
+                <input type="text" id="notes" placeholder="e.g. 1688 fabric batch #4, Pathao parcel ID" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm">
+                Add Record
+              </button>
+            </form>
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">From</label>
-              <select id="convFrom" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
-                <option value="USD" selected>USD ($)</option>
-                <option value="CNY">CNY / RMB (¥)</option>
-                <option value="BDT">BDT (৳)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-              </select>
+          <!-- Quick Currency Converter -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <span>💱</span> Quick Calculator
+              </h2>
+              <span id="rateStatus" class="text-[10px] text-slate-400">Loading rates...</span>
             </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">From</label>
+                <select id="convFrom" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+                  <option value="USD" selected>USD ($)</option>
+                  <option value="CNY">CNY / RMB (¥)</option>
+                  <option value="BDT">BDT (৳)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">To</label>
+                <select id="convTo" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+                  <option value="BDT" selected>BDT (৳)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="CNY">CNY / RMB (¥)</option>
+                </select>
+              </div>
+            </div>
+
             <div>
-              <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">To</label>
-              <select id="convTo" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
-                <option value="BDT" selected>BDT (৳)</option>
-                <option value="USD">USD ($)</option>
-                <option value="CNY">CNY / RMB (¥)</option>
-                <option value="EUR">EUR (€)</option>
-              </select>
+              <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Amount</label>
+              <input type="number" step="any" id="convAmount" value="100" class="w-full border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="convertCurrency()">
+            </div>
+
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+              <div>
+                <div class="text-[10px] text-slate-500">Converted Value</div>
+                <div id="convResult" class="text-sm font-bold text-blue-600">৳ 0.00</div>
+              </div>
+              <button type="button" onclick="applyQuickConvertedAmount()" class="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition">
+                Apply to Form ➔
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Visual Charts & Pillar Breakdown -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-sm font-bold text-slate-900">Financial Trends (Sales vs. COGS vs. OpEx)</h2>
+              <span class="text-[11px] text-slate-400">All in BDT (৳)</span>
+            </div>
+            <div class="h-60">
+              <canvas id="trendChart"></canvas>
             </div>
           </div>
 
           <div>
-            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Amount</label>
-            <input type="number" step="any" id="convAmount" value="100" class="w-full border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="convertCurrency()">
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Cost Pillars (Selected Range)</h3>
+            <div id="pillarBreakdown" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-center"></div>
           </div>
 
-          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-            <div>
-              <div class="text-[10px] text-slate-500">Converted Value</div>
-              <div id="convResult" class="text-sm font-bold text-blue-600">৳ 0.00</div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Category Breakdown & Budgets</h3>
+              <span class="text-[10px] text-slate-400">Tracked vs limits</span>
             </div>
-            <button type="button" onclick="applyQuickConvertedAmount()" class="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition">
-              Apply to Form ➔
+            <div id="detailedBreakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Transaction History Table -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Transaction History</h2>
+            <p class="text-[11px] text-slate-500" id="tableStatsLabel">Showing 0 transactions</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 no-print">
+            <div class="relative">
+              <input type="text" id="tableSearch" placeholder="Search notes, ID, tags..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="handleTableFilterChange()">
+              <span class="absolute right-2.5 top-2 text-slate-400 text-xs">🔍</span>
+            </div>
+
+            <select id="typeFilter" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none font-medium" onchange="handleTableFilterChange()">
+              <option value="all">All Types</option>
+              <option value="income">Income Only</option>
+              <option value="expense">Expenses Only</option>
+            </select>
+
+            <button onclick="exportCSV()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">Export CSV</button>
+            <button onclick="exportJSON()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">Backup JSON</button>
+            <label class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 cursor-pointer transition">
+              Restore
+              <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="handleFileSelect(event)">
+            </label>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-[10px] uppercase font-bold tracking-wider">
+              <tr>
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Type</th>
+                <th class="py-2.5 px-3">Category</th>
+                <th class="py-2.5 px-3">Description & Receipt</th>
+                <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
+                <th class="py-2.5 px-3 text-center no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transactionTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 no-print">
+          <div id="paginationInfo">Page 1 of 1</div>
+          <div class="flex items-center gap-1.5">
+            <button id="prevPageBtn" onclick="changePage(-1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40">Previous</button>
+            <button id="nextPageBtn" onclick="changePage(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: PRODUCT INVENTORY & PRICING VIEW    -->
+    <!-- ========================================== -->
+    <div id="viewInventorySection" class="hidden space-y-6">
+
+      <!-- Inventory Asset & Valuation Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Total Product SKUs</p>
+          <p id="invTotalSKUs" class="text-xl font-bold text-slate-900 mt-1">0 SKUs</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Active products</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Stock on Hand</p>
+          <p id="invTotalUnits" class="text-xl font-bold text-blue-600 mt-1">0 pcs</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Physical inventory</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Capital Tied Up</p>
+            <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">Asset</span>
+          </div>
+          <p id="invTotalAssetValue" class="text-xl font-bold text-amber-600 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Stock × Unit Landed COGS</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Retail Potential Value</p>
+          <p id="invTotalRetailValue" class="text-xl font-bold text-emerald-600 mt-1">৳ 0.00</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Stock × Selling Price</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Low Stock Alerts</p>
+            <span id="invLowStockBadge" class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1 rounded">0 Alerts</span>
+          </div>
+          <p id="invLowStockCount" class="text-xl font-bold text-rose-600 mt-1">0 Items</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Below alert threshold</p>
+        </div>
+      </div>
+
+      <!-- Inventory Controls & Product List Table -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Product SKU Catalog & Cost Breakdowns</h2>
+            <p class="text-[11px] text-slate-500">Manage Landed COGS, Weights, Target CPAs, Stock, and Selling Prices</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 no-print">
+            <div class="relative">
+              <input type="text" id="invSearch" placeholder="Search SKU, Product Name..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="renderInventoryTable()">
+              <span class="absolute right-2.5 top-2 text-slate-400 text-xs">🔍</span>
+            </div>
+
+            <button onclick="openProductModal()" class="px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs flex items-center gap-1.5 transition">
+              <span>+</span> Add New Product SKU
+            </button>
+            <button onclick="exportInventoryCSV()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">
+              Export Inventory CSV
             </button>
           </div>
         </div>
 
-      </div>
-
-      <!-- Right Column: Visual Charts, Budget Progress & Expense Breakdown -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
-        
-        <!-- Trends Chart -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-bold text-slate-900">Financial Performance (Sales vs. COGS vs. OpEx)</h2>
-            <span class="text-[11px] text-slate-400">All figures in BDT (৳)</span>
-          </div>
-          <div class="h-60">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Landed COGS vs OpEx Pillar Cards -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Cost Pillars (Selected Range)</h3>
-          <div id="pillarBreakdown" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-center">
-            <!-- Populated dynamically -->
-          </div>
-        </div>
-
-        <!-- Detailed Category List & Budget Tracking -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Category Breakdown & Budgets</h3>
-            <span class="text-[10px] text-slate-400">Tracked vs monthly limits</span>
-          </div>
-          <div id="detailedBreakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <!-- Populated dynamically -->
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Transaction History Table & Data Management -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-      
-      <!-- Table Header, Search & Filter Controls -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h2 class="text-base font-bold text-slate-900">Transaction History</h2>
-          <p class="text-[11px] text-slate-500" id="tableStatsLabel">Showing 0 transactions</p>
-        </div>
-
-        <!-- Search & Filter Controls -->
-        <div class="flex flex-wrap items-center gap-2 no-print">
-          <!-- Text Search -->
-          <div class="relative">
-            <input type="text" id="tableSearch" placeholder="Search notes, ID, tags..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="handleTableFilterChange()">
-            <span class="absolute right-2.5 top-2 text-slate-400 text-xs">🔍</span>
-          </div>
-
-          <!-- Type Filter -->
-          <select id="typeFilter" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none font-medium" onchange="handleTableFilterChange()">
-            <option value="all">All Types</option>
-            <option value="income">Income Only</option>
-            <option value="expense">Expenses Only</option>
-          </select>
-
-          <!-- Export & Backup Buttons -->
-          <button onclick="exportCSV()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">
-            Export CSV
-          </button>
-          <button onclick="exportJSON()" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 transition">
-            Backup JSON
-          </button>
-          <label class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 cursor-pointer transition">
-            Restore Backup
-            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="handleFileSelect(event)">
-          </label>
-        </div>
-      </div>
-
-      <!-- Responsive Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-[10px] uppercase font-bold tracking-wider">
-            <tr>
-              <th class="py-2.5 px-3">Date</th>
-              <th class="py-2.5 px-3">Type</th>
-              <th class="py-2.5 px-3">Category</th>
-              <th class="py-2.5 px-3">Description & Receipt</th>
-              <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
-              <th class="py-2.5 px-3 text-center no-print">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="transactionTable" class="divide-y divide-slate-100">
-            <!-- Populated dynamically -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination Controls (no-print) -->
-      <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 no-print">
-        <div id="paginationInfo">Page 1 of 1</div>
-        <div class="flex items-center gap-1.5">
-          <button id="prevPageBtn" onclick="changePage(-1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-          <button id="nextPageBtn" onclick="changePage(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+        <!-- Inventory Products Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-[10px] uppercase font-bold tracking-wider">
+              <tr>
+                <th class="py-2.5 px-3">Product</th>
+                <th class="py-2.5 px-3">Item Code (SKU)</th>
+                <th class="py-2.5 px-3">Stock on Hand</th>
+                <th class="py-2.5 px-3">Landed Cost (COGS)</th>
+                <th class="py-2.5 px-3">Target CPA & Profit</th>
+                <th class="py-2.5 px-3 text-right">Selling Price</th>
+                <th class="py-2.5 px-3 text-center no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
         </div>
       </div>
 
@@ -392,16 +452,158 @@
 
   </div>
 
+  <!-- ========================================== -->
+  <!-- MODAL: ADD / EDIT PRODUCT & COST FORMULA   -->
+  <!-- ========================================== -->
+  <div id="productModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white rounded-2xl p-5 md:p-6 max-w-2xl w-full shadow-2xl space-y-4 my-6">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div>
+          <h3 id="productModalTitle" class="text-base font-bold text-slate-900">Add New Product & Cost Formula</h3>
+          <p class="text-xs text-slate-500">Calculate Landed COGS, Sourcing, Weight, Packaging & Selling Price</p>
+        </div>
+        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <form id="productForm" class="space-y-4">
+        <input type="hidden" id="prodEditId" value="">
+
+        <!-- Basic Info Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Product Name</label>
+            <input type="text" id="prodName" required placeholder="e.g., Premium Linen Long Sleeve Shirt" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-[11px] font-semibold text-slate-700">Item Code (SKU)</label>
+              <button type="button" onclick="autoGenerateSKU()" class="text-[10px] text-blue-600 font-semibold hover:underline">Auto</button>
+            </div>
+            <input type="text" id="prodSKU" required placeholder="TYM-LS-001" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Category</label>
+            <input type="text" id="prodCategory" placeholder="e.g. Shirts, Kids, Polos" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Initial Stock (pcs)</label>
+            <input type="number" min="0" id="prodStock" required value="50" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Low Stock Alert (pcs)</label>
+            <input type="number" min="1" id="prodAlertLimit" value="10" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-700 mb-1">Product Image URL (Optional)</label>
+          <input type="url" id="prodImage" placeholder="https://example.com/image.jpg or Google Drive direct link" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="previewProductImage()">
+          <div id="imagePreviewContainer" class="hidden mt-2 flex items-center gap-2">
+            <img id="imagePreviewEl" src="" class="w-12 h-12 object-cover rounded-lg border border-slate-200">
+            <span class="text-[11px] text-slate-500">Image thumbnail preview</span>
+          </div>
+        </div>
+
+        <!-- 4-PART COSTING & PRICING BREAKDOWN CALCULATOR -->
+        <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3.5">
+          <div class="flex items-center justify-between border-b border-blue-200/80 pb-2">
+            <h4 class="text-xs font-black text-blue-900 uppercase tracking-wider">Per-Unit Landed Cost & Pricing Formula</h4>
+            <span class="text-[10px] bg-blue-200 text-blue-900 px-2 py-0.5 rounded font-bold">Auto-Calculated</span>
+          </div>
+
+          <!-- 1. Buying Price (RMB -> BDT) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-blue-950">
+              <span>1. Buying Price (China 1688 / Supplier)</span>
+              <span id="calcBuyBDT">৳ 0.00</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="number" step="any" id="calcBuyRMB" placeholder="Price in RMB (¥ e.g. 30)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcRMBRate" placeholder="RMB Rate (e.g. 17.20)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+            </div>
+          </div>
+
+          <!-- 2. Weight & Air/Sea Shipping -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-blue-950">
+              <span>2. Weight & International Freight</span>
+              <span id="calcFreightBDT">৳ 0.00</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="number" step="any" id="calcWeightKg" placeholder="Weight in kg (e.g. 0.35)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcFreightPerKg" placeholder="Freight ৳/kg (e.g. 750)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+            </div>
+          </div>
+
+          <!-- 3. Packaging & Accessories -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-blue-950">
+              <span>3. Packaging & Branding Accessories (৳)</span>
+              <span id="calcPackBDT">৳ 0.00</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <input type="number" step="any" id="calcPolyBag" placeholder="Poly Bag (৳ 5)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcTagLabel" placeholder="Tag/Label (৳ 8)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcBoxTape" placeholder="Box/Tape (৳ 15)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+            </div>
+          </div>
+
+          <!-- Landed COGS Subtotal Banner -->
+          <div class="p-2.5 bg-blue-100/90 border border-blue-300 rounded-xl flex items-center justify-between">
+            <span class="text-xs font-bold text-blue-950">Total Unit Landed COGS (Physical Cost):</span>
+            <span id="calcTotalLandedCOGS" class="text-sm font-black text-blue-900">৳ 0.00</span>
+          </div>
+
+          <!-- 4. Target Marketing & Profit Margin -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-blue-950">
+              <span>4. Target Ad CPA & Target Net Profit</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] text-blue-800 mb-0.5">Target Ad CPA (৳ per order)</label>
+                <input type="number" step="any" id="calcTargetAdCPA" placeholder="e.g. 250" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-blue-800 mb-0.5">Target Net Profit (৳ per unit)</label>
+                <input type="number" step="any" id="calcTargetProfit" placeholder="e.g. 393.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Final Selling Price Result Banner -->
+          <div class="p-3 bg-white border border-blue-300 rounded-xl flex items-center justify-between shadow-xs">
+            <div>
+              <div class="text-[10px] font-bold text-slate-500 uppercase">Recommended Selling Price</div>
+              <div id="calcFinalSellingPrice" class="text-lg font-black text-emerald-600">৳ 0.00</div>
+            </div>
+            <div class="text-right">
+              <div id="calcGrossMarginPct" class="text-xs font-bold text-blue-700">Gross Margin: 0%</div>
+              <div id="calcNetMarginPct" class="text-[10px] font-semibold text-slate-500">Net Margin: 0%</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+          Save Product SKU to Inventory
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Safe Import & Restore Modal -->
   <div id="importModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
       <h3 class="text-base font-bold text-slate-900">Safe Backup Restore</h3>
       <p class="text-xs text-slate-600 leading-relaxed">
-        Choose how you want to restore data from your backup file without losing existing entries.
+        Restore transactions and inventory records safely without wiping existing data.
       </p>
 
       <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
-        <div class="flex justify-between"><span>Current Records in Tracker:</span> <strong id="modalCurrentCount">0</strong></div>
+        <div class="flex justify-between"><span>Current Transactions:</span> <strong id="modalCurrentCount">0</strong></div>
         <div class="flex justify-between"><span>Records in File:</span> <strong id="modalIncomingCount">0</strong></div>
         <div class="flex justify-between text-blue-600"><span>New Non-Duplicate Records:</span> <strong id="modalNewCount">0</strong></div>
       </div>
@@ -427,9 +629,9 @@
         <h3 class="text-base font-bold text-slate-900">Monthly Category Budgets</h3>
         <button onclick="closeBudgetModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
       </div>
-      <p class="text-xs text-slate-500">Set monthly maximum spend limits (BDT ৳) to receive warning alerts when exceeded.</p>
+      <p class="text-xs text-slate-500">Set monthly maximum spend limits (BDT ৳) to receive warning alerts.</p>
 
-      <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1 text-xs">
+      <div class="space-y-2.5 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-0.5">Ad Cost (Meta / Ads)</label>
           <input type="number" id="budget_adCost" placeholder="e.g. 50000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
@@ -454,24 +656,24 @@
     </div>
   </div>
 
-  <!-- JavaScript Logic -->
+  <!-- JavaScript Application Logic -->
   <script>
     const STORAGE_KEY = 'tymino_v3_data';
+    const INVENTORY_KEY = 'tymino_v3_inventory';
     const PIN_KEY = 'tymino_pin_code';
     const BUDGET_KEY = 'tymino_budgets';
 
     let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let inventory = JSON.parse(localStorage.getItem(INVENTORY_KEY)) || [];
     let budgets = JSON.parse(localStorage.getItem(BUDGET_KEY)) || {};
     let trendChartInstance = null;
-    let exchangeRates = { USD: 1, BDT: 122, CNY: 7.25, EUR: 0.92, GBP: 0.78 };
+    let exchangeRates = { USD: 1, BDT: 122, CNY: 7.25, EUR: 0.92 };
     let quickConvertedRaw = 0;
     
-    // Pagination and Table Filter State
     let currentPage = 1;
     const pageSize = 15;
     let pendingImportData = null;
 
-    // Structured Categories Hierarchy
     const categoriesConfig = {
       income: {
         "Sales Channels": [
@@ -517,7 +719,6 @@
       }
     };
 
-    // Classify whether a category belongs to Landed COGS or OpEx
     function isCOGS(categoryName) {
       const cogsKeywords = [
         'China Product', 'Purchase', 'Fabric', 'Stitching', 'Sample',
@@ -541,23 +742,47 @@
       initDates();
       updateCategories();
       renderDashboard();
+      renderInventoryDashboard();
       fetchExchangeRates();
 
       document.getElementById('transactionForm').addEventListener('submit', handleSaveTransaction);
+      document.getElementById('productForm').addEventListener('submit', handleSaveProduct);
     });
 
-    // PIN Security Logic
+    // Main Tab Switching
+    function switchMainTab(tab) {
+      const fSec = document.getElementById('viewFinanceSection');
+      const iSec = document.getElementById('viewInventorySection');
+      const fBtn = document.getElementById('navTabFinance');
+      const iBtn = document.getElementById('navTabInventory');
+      const fBar = document.getElementById('financeControlsBar');
+
+      if (tab === 'finance') {
+        fSec.classList.remove('hidden');
+        iSec.classList.add('hidden');
+        fBar.classList.remove('hidden');
+        fBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-blue-700 shadow-xs';
+        iBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+        renderDashboard();
+      } else {
+        fSec.classList.add('hidden');
+        iSec.classList.remove('hidden');
+        fBar.classList.add('hidden');
+        iBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-blue-700 shadow-xs';
+        fBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+        renderInventoryDashboard();
+      }
+    }
+
+    // PIN Lock
     function checkPinStatus() {
-      const savedPin = localStorage.getItem(PIN_KEY);
-      if (savedPin) {
+      if (localStorage.getItem(PIN_KEY)) {
         document.getElementById('pinLockOverlay').classList.remove('hidden');
       }
     }
 
     function unlockWithPin() {
-      const input = document.getElementById('pinInput').value;
-      const savedPin = localStorage.getItem(PIN_KEY);
-      if (input === savedPin) {
+      if (document.getElementById('pinInput').value === localStorage.getItem(PIN_KEY)) {
         document.getElementById('pinLockOverlay').classList.add('hidden');
         document.getElementById('pinError').classList.add('hidden');
       } else {
@@ -566,22 +791,321 @@
     }
 
     function togglePinSettings() {
-      const currentPin = localStorage.getItem(PIN_KEY);
-      if (currentPin) {
-        if (confirm('A PIN is currently active. Do you want to remove the PIN lock?')) {
+      if (localStorage.getItem(PIN_KEY)) {
+        if (confirm('Remove active PIN lock?')) {
           localStorage.removeItem(PIN_KEY);
-          alert('PIN removed successfully.');
+          alert('PIN removed.');
         }
       } else {
-        const newPin = prompt('Enter a 4-digit PIN to secure your tracker:');
-        if (newPin && newPin.length >= 4) {
-          localStorage.setItem(PIN_KEY, newPin);
+        const p = prompt('Enter a 4-digit PIN:');
+        if (p && p.length >= 4) {
+          localStorage.setItem(PIN_KEY, p);
           alert('PIN lock enabled.');
         }
       }
     }
 
-    // Date Preset Logic
+    // Exchange Rates
+    async function fetchExchangeRates() {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data && data.rates) {
+          exchangeRates = data.rates;
+          document.getElementById('rateStatus').textContent = '● Live rates active';
+          document.getElementById('rateStatus').className = 'text-[10px] text-emerald-600 font-semibold';
+        }
+      } catch (err) {
+        document.getElementById('rateStatus').textContent = '● Standard rates';
+      }
+      convertCurrency();
+      handleCategoryChange();
+    }
+
+    // ==========================================
+    // INVENTORY MODULE LOGIC
+    // ==========================================
+
+    function autoGenerateSKU() {
+      const name = document.getElementById('prodName').value.trim();
+      let prefix = 'TYM';
+      if (name) {
+        const words = name.replace(/[^a-zA-Z0-9 ]/g, '').split(' ').filter(w => w.length > 0);
+        prefix += '-' + words.map(w => w[0].toUpperCase()).slice(0, 3).join('');
+      }
+      const randomCode = Math.floor(100 + Math.random() * 900);
+      document.getElementById('prodSKU').value = `${prefix}-${randomCode}`;
+    }
+
+    function previewProductImage() {
+      const url = document.getElementById('prodImage').value.trim();
+      const container = document.getElementById('imagePreviewContainer');
+      const img = document.getElementById('imagePreviewEl');
+      if (url) {
+        img.src = url;
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function recomputeProductFormula() {
+      const rmbPrice = parseFloat(document.getElementById('calcBuyRMB').value) || 0;
+      const rmbRate = parseFloat(document.getElementById('calcRMBRate').value) || (exchangeRates.BDT / exchangeRates.CNY) || 17.20;
+      const buyBDT = rmbPrice * rmbRate;
+      document.getElementById('calcBuyBDT').textContent = formatBDT(buyBDT);
+
+      const weight = parseFloat(document.getElementById('calcWeightKg').value) || 0;
+      const freightRate = parseFloat(document.getElementById('calcFreightPerKg').value) || 0;
+      const freightBDT = weight * freightRate;
+      document.getElementById('calcFreightBDT').textContent = formatBDT(freightBDT);
+
+      const poly = parseFloat(document.getElementById('calcPolyBag').value) || 0;
+      const tag = parseFloat(document.getElementById('calcTagLabel').value) || 0;
+      const box = parseFloat(document.getElementById('calcBoxTape').value) || 0;
+      const packBDT = poly + tag + box;
+      document.getElementById('calcPackBDT').textContent = formatBDT(packBDT);
+
+      const landedCOGS = buyBDT + freightBDT + packBDT;
+      document.getElementById('calcTotalLandedCOGS').textContent = formatBDT(landedCOGS);
+
+      const targetCPA = parseFloat(document.getElementById('calcTargetAdCPA').value) || 0;
+      const targetProfit = parseFloat(document.getElementById('calcTargetProfit').value) || 0;
+
+      const finalSellingPrice = landedCOGS + targetCPA + targetProfit;
+      document.getElementById('calcFinalSellingPrice').textContent = formatBDT(finalSellingPrice);
+
+      const grossMargin = finalSellingPrice > 0 ? (((finalSellingPrice - landedCOGS) / finalSellingPrice) * 100).toFixed(1) : 0;
+      const netMargin = finalSellingPrice > 0 ? ((targetProfit / finalSellingPrice) * 100).toFixed(1) : 0;
+
+      document.getElementById('calcGrossMarginPct').textContent = `Gross Margin: ${grossMargin}%`;
+      document.getElementById('calcNetMarginPct').textContent = `Net Margin: ${netMargin}%`;
+    }
+
+    function openProductModal(editId = null) {
+      document.getElementById('productForm').reset();
+      document.getElementById('prodEditId').value = '';
+      document.getElementById('imagePreviewContainer').classList.add('hidden');
+
+      const defaultRmbRate = ((exchangeRates.BDT || 122) / (exchangeRates.CNY || 7.25)).toFixed(2);
+      document.getElementById('calcRMBRate').value = defaultRmbRate;
+      document.getElementById('calcFreightPerKg').value = 750;
+
+      if (editId) {
+        const item = inventory.find(p => p.id === editId);
+        if (item) {
+          document.getElementById('prodEditId').value = item.id;
+          document.getElementById('productModalTitle').textContent = 'Edit Product SKU & Costing';
+          document.getElementById('prodName').value = item.name;
+          document.getElementById('prodSKU').value = item.sku;
+          document.getElementById('prodCategory').value = item.category || '';
+          document.getElementById('prodStock').value = item.stock;
+          document.getElementById('prodAlertLimit').value = item.alertLimit || 10;
+          document.getElementById('prodImage').value = item.image || '';
+
+          document.getElementById('calcBuyRMB').value = item.costing.rmbPrice || '';
+          document.getElementById('calcRMBRate').value = item.costing.rmbRate || defaultRmbRate;
+          document.getElementById('calcWeightKg').value = item.costing.weight || '';
+          document.getElementById('calcFreightPerKg').value = item.costing.freightRate || '';
+          document.getElementById('calcPolyBag').value = item.costing.poly || '';
+          document.getElementById('calcTagLabel').value = item.costing.tag || '';
+          document.getElementById('calcBoxTape').value = item.costing.box || '';
+          document.getElementById('calcTargetAdCPA').value = item.costing.targetCPA || '';
+          document.getElementById('calcTargetProfit').value = item.costing.targetProfit || '';
+
+          previewProductImage();
+        }
+      } else {
+        document.getElementById('productModalTitle').textContent = 'Add New Product & Cost Formula';
+        autoGenerateSKU();
+      }
+
+      recomputeProductFormula();
+      document.getElementById('productModal').classList.remove('hidden');
+    }
+
+    function closeProductModal() {
+      document.getElementById('productModal').classList.add('hidden');
+    }
+
+    function handleSaveProduct(e) {
+      e.preventDefault();
+      const editId = document.getElementById('prodEditId').value;
+      const name = document.getElementById('prodName').value.trim();
+      const sku = document.getElementById('prodSKU').value.trim().toUpperCase();
+      const category = document.getElementById('prodCategory').value.trim();
+      const stock = parseInt(document.getElementById('prodStock').value) || 0;
+      const alertLimit = parseInt(document.getElementById('prodAlertLimit').value) || 10;
+      const image = document.getElementById('prodImage').value.trim();
+
+      const rmbPrice = parseFloat(document.getElementById('calcBuyRMB').value) || 0;
+      const rmbRate = parseFloat(document.getElementById('calcRMBRate').value) || 17.20;
+      const weight = parseFloat(document.getElementById('calcWeightKg').value) || 0;
+      const freightRate = parseFloat(document.getElementById('calcFreightPerKg').value) || 0;
+      const poly = parseFloat(document.getElementById('calcPolyBag').value) || 0;
+      const tag = parseFloat(document.getElementById('calcTagLabel').value) || 0;
+      const box = parseFloat(document.getElementById('calcBoxTape').value) || 0;
+      const targetCPA = parseFloat(document.getElementById('calcTargetAdCPA').value) || 0;
+      const targetProfit = parseFloat(document.getElementById('calcTargetProfit').value) || 0;
+
+      const landedCOGS = (rmbPrice * rmbRate) + (weight * freightRate) + (poly + tag + box);
+      const sellingPrice = landedCOGS + targetCPA + targetProfit;
+
+      const productPayload = {
+        id: editId || Date.now().toString(),
+        name,
+        sku,
+        category,
+        stock,
+        alertLimit,
+        image,
+        landedCOGS,
+        sellingPrice,
+        costing: {
+          rmbPrice, rmbRate, weight, freightRate,
+          poly, tag, box, targetCPA, targetProfit
+        }
+      };
+
+      if (editId) {
+        const idx = inventory.findIndex(p => p.id === editId);
+        if (idx !== -1) inventory[idx] = productPayload;
+      } else {
+        inventory.push(productPayload);
+      }
+
+      saveInventoryData();
+      renderInventoryDashboard();
+      closeProductModal();
+    }
+
+    function adjustStock(prodId, delta) {
+      const p = inventory.find(i => i.id === prodId);
+      if (p) {
+        p.stock = Math.max(0, p.stock + delta);
+        saveInventoryData();
+        renderInventoryDashboard();
+      }
+    }
+
+    function deleteProduct(id) {
+      if (confirm('Delete this product from inventory?')) {
+        inventory = inventory.filter(p => p.id !== id);
+        saveInventoryData();
+        renderInventoryDashboard();
+      }
+    }
+
+    function saveInventoryData() {
+      localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+    }
+
+    function renderInventoryDashboard() {
+      const totalSKUs = inventory.length;
+      let totalUnits = 0;
+      let totalAssetValue = 0;
+      let totalRetailValue = 0;
+      let lowStockCount = 0;
+
+      inventory.forEach(p => {
+        totalUnits += (p.stock || 0);
+        totalAssetValue += (p.stock || 0) * (p.landedCOGS || 0);
+        totalRetailValue += (p.stock || 0) * (p.sellingPrice || 0);
+        if (p.stock <= (p.alertLimit || 10)) lowStockCount++;
+      });
+
+      document.getElementById('invTotalSKUs').textContent = `${totalSKUs} SKUs`;
+      document.getElementById('invTotalUnits').textContent = `${totalUnits.toLocaleString()} pcs`;
+      document.getElementById('invTotalAssetValue').textContent = formatBDT(totalAssetValue);
+      document.getElementById('invTotalRetailValue').textContent = formatBDT(totalRetailValue);
+      document.getElementById('invLowStockCount').textContent = `${lowStockCount} Items`;
+      document.getElementById('invLowStockBadge').textContent = `${lowStockCount} Alerts`;
+
+      renderInventoryTable();
+    }
+
+    function renderInventoryTable() {
+      const q = document.getElementById('invSearch').value.toLowerCase();
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = '';
+
+      const filtered = inventory.filter(p => {
+        return !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q));
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">No products found. Click "+ Add New Product SKU" to create one.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(p => {
+        const isLow = p.stock <= (p.alertLimit || 10);
+        const grossMargin = p.sellingPrice > 0 ? (((p.sellingPrice - p.landedCOGS) / p.sellingPrice) * 100).toFixed(0) : 0;
+
+        const defaultImg = 'https://via.placeholder.com/60?text=TYMINO';
+        const imgUrl = p.image || defaultImg;
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50 transition';
+        row.innerHTML = `
+          <td class="py-3 px-3">
+            <div class="flex items-center gap-2.5">
+              <img src="${imgUrl}" class="w-10 h-10 object-cover rounded-lg border border-slate-200" onerror="this.src='${defaultImg}'">
+              <div>
+                <div class="font-bold text-slate-900">${p.name}</div>
+                <div class="text-[10px] text-slate-400">${p.category || 'General'}</div>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-3 font-mono font-bold text-blue-700 text-xs">${p.sku}</td>
+          <td class="py-3 px-3">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs ${isLow ? 'text-rose-600' : 'text-slate-800'}">${p.stock} pcs</span>
+              ${isLow ? '<span class="px-1 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-bold rounded">Low</span>' : ''}
+              <div class="flex items-center gap-1 ml-1 no-print">
+                <button onclick="adjustStock('${p.id}', -1)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold">−</button>
+                <button onclick="adjustStock('${p.id}', 1)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold">+</button>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-bold text-slate-900">${formatBDT(p.landedCOGS)}</div>
+            <div class="text-[10px] text-slate-400">¥${p.costing.rmbPrice || 0} + ${p.costing.weight || 0}kg</div>
+          </td>
+          <td class="py-3 px-3">
+            <div class="text-xs text-slate-700">CPA: ${formatBDT(p.costing.targetCPA || 0)}</div>
+            <div class="text-[10px] font-bold text-emerald-600">Profit: ${formatBDT(p.costing.targetProfit || 0)} (${grossMargin}% Gross)</div>
+          </td>
+          <td class="py-3 px-3 text-right">
+            <div class="text-sm font-black text-emerald-600">${formatBDT(p.sellingPrice)}</div>
+          </td>
+          <td class="py-3 px-3 text-center whitespace-nowrap no-print">
+            <button onclick="openProductModal('${p.id}')" class="text-blue-600 hover:text-blue-800 font-semibold text-[11px] mr-2">Edit</button>
+            <button onclick="deleteProduct('${p.id}')" class="text-slate-400 hover:text-rose-600 font-semibold text-[11px]">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function exportInventoryCSV() {
+      if (inventory.length === 0) return alert('No inventory items to export.');
+      let csv = 'SKU,Product_Name,Category,Stock_Qty,Landed_COGS_BDT,Selling_Price_BDT,Target_Ad_CPA,Target_Profit,RMB_Price,Weight_KG,Image_URL\n';
+      inventory.forEach(p => {
+        csv += `"${p.sku}","${p.name}","${p.category || ''}","${p.stock}","${p.landedCOGS}","${p.sellingPrice}","${p.costing.targetCPA || 0}","${p.costing.targetProfit || 0}","${p.costing.rmbPrice || 0}","${p.costing.weight || 0}","${p.image || ''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tymino_inventory_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    // ==========================================
+    // FINANCIAL P&L LOGIC
+    // ==========================================
+
     function initDates() {
       const now = new Date();
       document.getElementById('date').value = now.toISOString().split('T')[0];
@@ -590,11 +1114,8 @@
     function handleDatePresetChange() {
       const preset = document.getElementById('datePreset').value;
       const customBox = document.getElementById('customDateRangeInputs');
-      if (preset === 'custom') {
-        customBox.classList.remove('hidden');
-      } else {
-        customBox.classList.add('hidden');
-      }
+      if (preset === 'custom') customBox.classList.remove('hidden');
+      else customBox.classList.add('hidden');
       renderDashboard();
     }
 
@@ -626,23 +1147,6 @@
       return { start, end };
     }
 
-    // Exchange Rates
-    async function fetchExchangeRates() {
-      try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
-        const data = await res.json();
-        if (data && data.rates) {
-          exchangeRates = data.rates;
-          document.getElementById('rateStatus').textContent = '● Live rates active';
-          document.getElementById('rateStatus').className = 'text-[10px] text-emerald-600 font-semibold';
-        }
-      } catch (err) {
-        document.getElementById('rateStatus').textContent = '● Standard rates';
-      }
-      convertCurrency();
-      handleCategoryChange();
-    }
-
     function updateCategories() {
       const type = document.querySelector('input[name="entryType"]:checked').value;
       const categorySelect = document.getElementById('category');
@@ -661,7 +1165,6 @@
         categorySelect.appendChild(optGroup);
       }
 
-      // Toggle order count visibility
       document.getElementById('orderCountBox').style.display = (type === 'income') ? 'block' : 'none';
       handleCategoryChange();
     }
@@ -710,7 +1213,6 @@
       }
     }
 
-    // Save or Update Transaction
     function handleSaveTransaction(e) {
       e.preventDefault();
       const editingId = document.getElementById('editingId').value;
@@ -737,34 +1239,18 @@
       }
 
       if (editingId) {
-        // Update existing
         const idx = transactions.findIndex(t => t.id === editingId);
         if (idx !== -1) {
           transactions[idx] = {
             ...transactions[idx],
-            type,
-            category,
-            amount,
-            date,
-            notes,
-            receiptLink,
-            orderCount,
-            foreignInfo
+            type, category, amount, date, notes, receiptLink, orderCount, foreignInfo
           };
         }
         cancelEditing();
       } else {
-        // Create new
         const newEntry = {
           id: Date.now().toString(),
-          type,
-          category,
-          amount,
-          date,
-          notes,
-          receiptLink,
-          orderCount,
-          foreignInfo
+          type, category, amount, date, notes, receiptLink, orderCount, foreignInfo
         };
         transactions.push(newEntry);
       }
@@ -784,7 +1270,6 @@
       document.getElementById('submitBtn').textContent = 'Save Changes';
       document.getElementById('submitBtn').className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm';
 
-      // Set Type
       const radios = document.getElementsByName('entryType');
       for (const r of radios) {
         if (r.value === item.type) r.checked = true;
@@ -809,7 +1294,7 @@
 
     function cancelEditing() {
       document.getElementById('editingId').value = '';
-      document.getElementById('formTitle').textContent = 'Log New Transaction';
+      document.getElementById('formTitle').textContent = 'Log Transaction';
       document.getElementById('cancelEditBtn').classList.add('hidden');
       document.getElementById('submitBtn').textContent = 'Add Record';
       document.getElementById('submitBtn').className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm';
@@ -825,7 +1310,7 @@
     }
 
     function deleteTransaction(id) {
-      if (confirm('Are you sure you want to delete this record?')) {
+      if (confirm('Delete this transaction record?')) {
         transactions = transactions.filter(item => item.id !== id);
         saveData();
         renderDashboard();
@@ -836,7 +1321,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
     }
 
-    // Dashboard Calculations & Rendering
     function renderDashboard() {
       const { start, end } = getDateBounds();
       const filtered = transactions.filter(t => {
@@ -869,11 +1353,8 @@
           if (cat === 'Purchase') cat = 'China Product Purchase';
           categoryTotals[cat] = (categoryTotals[cat] || 0) + item.amount;
 
-          if (isCOGS(cat)) {
-            totalCOGS += item.amount;
-          } else {
-            totalOpEx += item.amount;
-          }
+          if (isCOGS(cat)) totalCOGS += item.amount;
+          else totalOpEx += item.amount;
 
           if (cat.includes('Ad Cost')) totalAdCost += item.amount;
 
@@ -892,7 +1373,6 @@
       const roas = totalAdCost > 0 ? (revenue / totalAdCost).toFixed(2) + 'x' : 'N/A';
       const aov = totalOrders > 0 ? formatBDT(revenue / totalOrders) : '৳ 0';
 
-      // Update KPI Cards
       document.getElementById('totalRevenue').textContent = formatBDT(revenue);
       document.getElementById('ordersSubtitle').textContent = `${totalOrders} orders recorded`;
 
@@ -911,7 +1391,6 @@
       document.getElementById('aovText').textContent = `AOV: ${aov}`;
       document.getElementById('adSpendSubtitle').textContent = `Ad Spend: ${formatBDT(totalAdCost)}`;
 
-      // Render Cost Pillars
       const pillarContainer = document.getElementById('pillarBreakdown');
       pillarContainer.innerHTML = Object.entries(groupTotals).map(([grp, amt]) => `
         <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
@@ -920,11 +1399,10 @@
         </div>
       `).join('');
 
-      // Render Detailed Categories with Budgets
       const detailedContainer = document.getElementById('detailedBreakdown');
       const activeCats = Object.entries(categoryTotals).sort((a, b) => b - a);
       if (activeCats.length === 0) {
-        detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-3">No expense line items in this period.</div>`;
+        detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-3">No expense items in this period.</div>`;
       } else {
         detailedContainer.innerHTML = activeCats.map(([cat, amt]) => {
           let budgetInfo = '';
@@ -960,7 +1438,6 @@
       renderTrendChart();
     }
 
-    // Filter & Paginate Transaction Table
     function handleTableFilterChange() {
       currentPage = 1;
       renderTable();
@@ -981,7 +1458,6 @@
       });
 
       filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
       document.getElementById('tableStatsLabel').textContent = `Showing ${filtered.length} transactions`;
 
       const totalPages = Math.ceil(filtered.length / pageSize) || 1;
@@ -1010,11 +1486,7 @@
           foreignBadge = `<div class="text-[10px] text-slate-400">(${item.foreignInfo.symbol}${item.foreignInfo.amount.toLocaleString()} @ ৳${item.foreignInfo.rate}/${item.foreignInfo.currency})</div>`;
         }
 
-        let linkBadge = '';
-        if (item.receiptLink) {
-          linkBadge = `<a href="${item.receiptLink}" target="_blank" class="inline-block ml-1 text-blue-600 hover:underline font-semibold text-[11px]">🔗 Receipt</a>`;
-        }
-
+        let linkBadge = item.receiptLink ? `<a href="${item.receiptLink}" target="_blank" class="inline-block ml-1 text-blue-600 hover:underline font-semibold text-[11px]">🔗 Receipt</a>` : '';
         let ordersBadge = item.orderCount ? `<span class="inline-block ml-1 px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">${item.orderCount} orders</span>` : '';
 
         row.innerHTML = `
@@ -1048,7 +1520,6 @@
       renderTable();
     }
 
-    // Chart.js Visualization
     function renderTrendChart() {
       const months = [];
       const revenueData = [];
@@ -1108,7 +1579,6 @@
       return '৳ ' + Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // Quick Converter
     function convertCurrency() {
       const from = document.getElementById('convFrom').value;
       const to = document.getElementById('convTo').value;
@@ -1118,7 +1588,7 @@
       const converted = inUSD * (exchangeRates[to] || 1);
       quickConvertedRaw = converted;
 
-      const symbols = { BDT: '৳', USD: '$', CNY: '¥', EUR: '€', GBP: '£' };
+      const symbols = { BDT: '৳', USD: '$', CNY: '¥', EUR: '€' };
       document.getElementById('convResult').textContent = `${symbols[to] || ''} ${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
@@ -1129,7 +1599,7 @@
       }
     }
 
-    // Safe Import & Non-Destructive Restore
+    // Safe Import & Restore
     function handleFileSelect(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1137,26 +1607,26 @@
       reader.onload = (event) => {
         try {
           const parsed = JSON.parse(event.target.result);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) || (parsed.transactions && parsed.inventory)) {
             pendingImportData = parsed;
             
-            // Calculate unique vs duplicates
+            const incomingTx = Array.isArray(parsed) ? parsed : (parsed.transactions || []);
             const existingKeys = new Set(transactions.map(t => `${t.date}_${t.type}_${t.category}_${t.amount}`));
             let newCount = 0;
-            parsed.forEach(p => {
+            incomingTx.forEach(p => {
               const k = `${p.date}_${p.type}_${p.category}_${p.amount}`;
               if (!existingKeys.has(k)) newCount++;
             });
 
             document.getElementById('modalCurrentCount').textContent = transactions.length;
-            document.getElementById('modalIncomingCount').textContent = parsed.length;
+            document.getElementById('modalIncomingCount').textContent = incomingTx.length;
             document.getElementById('modalNewCount').textContent = newCount;
             document.getElementById('importModal').classList.remove('hidden');
           } else {
-            alert('Invalid backup format.');
+            alert('Invalid backup file format.');
           }
         } catch (err) {
-          alert('Failed to read JSON backup file.');
+          alert('Failed to read JSON backup.');
         }
       };
       reader.readAsText(file);
@@ -1165,21 +1635,35 @@
 
     function confirmImport(mode) {
       if (!pendingImportData) return;
+      const incomingTx = Array.isArray(pendingImportData) ? pendingImportData : (pendingImportData.transactions || []);
+      const incomingInv = pendingImportData.inventory || [];
+
       if (mode === 'merge') {
         const existingKeys = new Set(transactions.map(t => `${t.date}_${t.type}_${t.category}_${t.amount}`));
-        pendingImportData.forEach(p => {
+        incomingTx.forEach(p => {
           const k = `${p.date}_${p.type}_${p.category}_${p.amount}`;
           if (!existingKeys.has(k)) {
             transactions.push({ ...p, id: Date.now() + Math.random().toString() });
           }
         });
-        alert('New records merged successfully.');
+
+        const existingSKUs = new Set(inventory.map(i => i.sku));
+        incomingInv.forEach(invItem => {
+          if (!existingSKUs.has(invItem.sku)) {
+            inventory.push(invItem);
+          }
+        });
+        alert('New transactions and inventory items merged.');
       } else if (mode === 'overwrite') {
-        transactions = pendingImportData;
+        transactions = incomingTx;
+        if (incomingInv.length > 0) inventory = incomingInv;
         alert('All records replaced from backup.');
       }
+
       saveData();
+      saveInventoryData();
       renderDashboard();
+      renderInventoryDashboard();
       closeImportModal();
     }
 
@@ -1188,7 +1672,6 @@
       pendingImportData = null;
     }
 
-    // Budget Modal
     function openBudgetModal() {
       document.getElementById('budget_adCost').value = budgets.adCost || '';
       document.getElementById('budget_sourcing').value = budgets.sourcing || '';
@@ -1213,7 +1696,6 @@
       renderDashboard();
     }
 
-    // Export CSV
     function exportCSV() {
       if (transactions.length === 0) return alert('No transactions to export.');
       let csv = 'ID,Date,Type,Category,COGS_or_OpEx,Amount_BDT,Foreign_Info,Orders_Count,Receipt_Link,Notes\n';
@@ -1230,12 +1712,17 @@
       a.click();
     }
 
-    // Export JSON Backup
     function exportJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+      const fullBackup = {
+        transactions,
+        inventory,
+        budgets,
+        exportedAt: new Date().toISOString()
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
       const a = document.createElement('a');
       a.href = dataStr;
-      a.download = `tymino_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `tymino_full_backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
     }
   </script>
