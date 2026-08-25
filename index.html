@@ -16,7 +16,7 @@
     <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
       <div>
         <h1 class="text-2xl font-bold text-slate-900"><span class="text-blue-600">TYMINO:</span> Business Expense & Profit Tracker</h1>
-        <p class="text-sm text-slate-500">Track China sourcing (RMB), ads (USD), poly bags, printer accessories, shipping, deliveries, and profit in BDT.</p>
+        <p class="text-sm text-slate-500">Track sourcing (RMB), ads (USD), packaging, logistics, operations, sales, and monthly profit in BDT.</p>
       </div>
       <div class="flex items-center gap-3">
         <label for="filterMonth" class="text-sm font-medium text-slate-600">Month:</label>
@@ -63,7 +63,7 @@
               <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center justify-center p-2 text-sm border rounded-lg cursor-pointer hover:bg-slate-50">
                   <input type="radio" name="entryType" value="income" class="mr-2" checked onchange="updateCategories()">
-                  <span>Income / Sell</span>
+                  <span>Income / Sales</span>
                 </label>
                 <label class="flex items-center justify-center p-2 text-sm border rounded-lg cursor-pointer hover:bg-slate-50">
                   <input type="radio" name="entryType" value="expense" class="mr-2" onchange="updateCategories()">
@@ -73,12 +73,625 @@
             </div>
 
             <div>
-              <label for="category" class="block text-xs font-medium text-slate-700 mb-1">Category</label>
+              <label for="category" class="block text-xs font-medium text-slate-700 mb-1">Category Header</label>
               <select id="category" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="handleCategoryChange()"></select>
             </div>
 
-            <!-- Dynamic Currency Converter Box (for Ad Cost USD & China Product Purchase RMB) -->
+            <!-- Dynamic Currency Converter Box (for Ad Cost USD & China Sourcing RMB) -->
             <div id="currencyHelperBox" class="hidden p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2.5">
               <div class="flex items-center justify-between text-xs font-semibold text-blue-900">
                 <span id="helperBoxTitle">Foreign Currency Conversion</span>
-                <span class="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded
+                <span class="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">Auto-fills BDT</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label id="foreignAmountLabel" class="block text-[11px] font-medium text-blue-800 mb-0.5">Amount</label>
+                  <input type="number" step="any" id="foreignAmount" placeholder="0.00" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateFromForeign()">
+                </div>
+                <div>
+                  <label id="foreignRateLabel" class="block text-[11px] font-medium text-blue-800 mb-0.5">Rate (1 unit = ? ৳)</label>
+                  <input type="number" step="any" id="foreignRate" placeholder="122.50" class="w-full border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateFromForeign()">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label for="amount" class="block text-xs font-medium text-slate-700 mb-1">Final Amount (BDT ৳)</label>
+              <input type="number" step="0.01" min="0.01" id="amount" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+              <label for="date" class="block text-xs font-medium text-slate-700 mb-1">Date</label>
+              <input type="date" id="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+              <label for="notes" class="block text-xs font-medium text-slate-700 mb-1">Description / Note</label>
+              <input type="text" id="notes" placeholder="e.g., 1688 fabric order #4, Facebook ads batch, Pathao invoice" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm">
+              Add Record
+            </button>
+          </form>
+        </div>
+
+        <!-- Quick Rate Calculator -->
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+              <span>💱</span> Quick Calculator
+            </h2>
+            <span id="rateStatus" class="text-[11px] text-slate-400">Loading rates...</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">From</label>
+              <select id="convFrom" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+                <option value="USD" selected>USD ($)</option>
+                <option value="CNY">CNY / RMB (¥)</option>
+                <option value="BDT">BDT (৳)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">To</label>
+              <select id="convTo" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="convertCurrency()">
+                <option value="BDT" selected>BDT (৳)</option>
+                <option value="USD">USD ($)</option>
+                <option value="CNY">CNY / RMB (¥)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Amount</label>
+            <input type="number" step="any" id="convAmount" value="100" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="convertCurrency()">
+          </div>
+
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-slate-500">Converted Total</div>
+              <div id="convResult" class="text-base font-bold text-blue-600">৳ 0.00</div>
+            </div>
+            <button type="button" onclick="applyQuickConvertedAmount()" class="px-2.5 py-1 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200">
+              Apply to Form
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Overview Chart & Expense Breakdown -->
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900 mb-2">Monthly Trend in BDT (Last 6 Months)</h2>
+          <div class="h-56">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800 mb-3">Expense Breakdown by Group (Selected Month)</h3>
+          <div id="groupBreakdown" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-center mb-4">
+            <!-- Populated via JS -->
+          </div>
+
+          <h3 class="text-sm font-semibold text-slate-800 mb-3">Detailed Category Breakdown</h3>
+          <div id="detailedBreakdown" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction History Table -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 class="text-lg font-semibold text-slate-900">Transaction History</h2>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="exportCSV()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
+            Export CSV
+          </button>
+          <button onclick="exportJSON()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
+            Backup (JSON)
+          </button>
+          <label class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300 cursor-pointer">
+            Restore Backup
+            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-xs uppercase">
+            <tr>
+              <th class="py-3 px-4">Date</th>
+              <th class="py-3 px-4">Type</th>
+              <th class="py-3 px-4">Category</th>
+              <th class="py-3 px-4">Description</th>
+              <th class="py-3 px-4 text-right">Amount (BDT)</th>
+              <th class="py-3 px-4 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="transactionTable" class="divide-y divide-slate-100">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const STORAGE_KEY = 'tymino_expense_tracker_data';
+    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let trendChartInstance = null;
+    let exchangeRates = { USD: 1, BDT: 122, CNY: 7.25, EUR: 0.92 };
+    let quickConvertedRaw = 0;
+
+    const categoriesConfig = {
+      income: {
+        "Sales Channels": [
+          "Website Orders",
+          "Facebook / Social Media Sales",
+          "Wholesale / Bulk Sales",
+          "Cash on Delivery (COD) Remittance",
+          "Sell / Revenue"
+        ]
+      },
+      expense: {
+        "📦 Sourcing & Production": [
+          "China Product Purchase",
+          "Fabric & Raw Materials",
+          "Local Factory / Stitching Cost",
+          "Sample & Development Cost"
+        ],
+        "🏷️ Packaging & Branding": [
+          "Poly Bag Purchase",
+          "Printer Accessories & Thermal Paper",
+          "Custom Tags, Labels & Cards",
+          "Packaging Boxes & Tape"
+        ],
+        "📢 Marketing & Promotion": [
+          "Ad Cost",
+          "PR Packages & Gifting",
+          "Product Live (Influencer Cost)",
+          "Model Photoshoot & Content"
+        ],
+        "🚚 Logistics & Delivery": [
+          "Shipping Cost",
+          "Pathao / Courier Delivery Cost",
+          "Uber / Local Transit",
+          "RTO (Return / Redelivery Cost)"
+        ],
+        "🏢 Operations & Team": [
+          "Staff Salary & Allowances",
+          "Office / Warehouse Rent",
+          "Utilities & Internet",
+          "Software & Subscriptions",
+          "Other Cost"
+        ]
+      }
+    };
+
+    // Helper map to find group name for any category
+    function getCategoryGroup(catName) {
+      for (const [group, items] of Object.entries(categoriesConfig.expense)) {
+        if (items.includes(catName)) return group;
+      }
+      if (catName === 'Purchase') return "📦 Sourcing & Production";
+      if (catName === 'Salary') return "🏢 Operations & Team";
+      if (catName.includes('Delivery')) return "🚚 Logistics & Delivery";
+      return "🏢 Operations & Team";
+    }
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('filterMonth').value = currentMonth;
+      document.getElementById('date').value = now.toISOString().split('T')[0];
+
+      updateCategories();
+      renderDashboard();
+      fetchExchangeRates();
+
+      document.getElementById('filterMonth').addEventListener('change', renderDashboard);
+      document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
+    });
+
+    // Exchange Rate Fetching
+    async function fetchExchangeRates() {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data && data.rates) {
+          exchangeRates = data.rates;
+          document.getElementById('rateStatus').textContent = '● Live rates active';
+          document.getElementById('rateStatus').className = 'text-[11px] text-emerald-600 font-medium';
+        }
+      } catch (err) {
+        document.getElementById('rateStatus').textContent = '● Standard rates';
+      }
+      convertCurrency();
+      handleCategoryChange();
+    }
+
+    function updateCategories() {
+      const type = document.querySelector('input[name="entryType"]:checked').value;
+      const categorySelect = document.getElementById('category');
+      categorySelect.innerHTML = '';
+
+      const groups = categoriesConfig[type];
+      for (const [groupName, catList] of Object.entries(groups)) {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = groupName;
+        catList.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          optGroup.appendChild(opt);
+        });
+        categorySelect.appendChild(optGroup);
+      }
+      handleCategoryChange();
+    }
+
+    function handleCategoryChange() {
+      const category = document.getElementById('category').value;
+      const helperBox = document.getElementById('currencyHelperBox');
+      const foreignAmountInput = document.getElementById('foreignAmount');
+      const foreignRateInput = document.getElementById('foreignRate');
+      const foreignAmountLabel = document.getElementById('foreignAmountLabel');
+      const foreignRateLabel = document.getElementById('foreignRateLabel');
+      const helperTitle = document.getElementById('helperBoxTitle');
+
+      const usdToBdt = (exchangeRates.BDT || 122).toFixed(2);
+      const rmbToBdt = ((exchangeRates.BDT || 122) / (exchangeRates.CNY || 7.25)).toFixed(2);
+
+      if (category.includes('Ad Cost')) {
+        helperBox.classList.remove('hidden');
+        helperTitle.textContent = 'USD ($) to BDT (৳) Conversion';
+        foreignAmountLabel.textContent = 'Amount in USD ($)';
+        foreignRateLabel.textContent = 'Rate (1 USD = ? ৳)';
+        foreignRateInput.value = foreignRateInput.value || usdToBdt;
+        foreignAmountInput.placeholder = 'e.g. 50';
+      } else if (category.includes('China Product')) {
+        helperBox.classList.remove('hidden');
+        helperTitle.textContent = 'China RMB (¥) to BDT (৳) Conversion';
+        foreignAmountLabel.textContent = 'Amount in RMB / CNY (¥)';
+        foreignRateLabel.textContent = 'Rate (1 RMB = ? ৳)';
+        foreignRateInput.value = foreignRateInput.value || rmbToBdt;
+        foreignAmountInput.placeholder = 'e.g. 1500';
+      } else {
+        helperBox.classList.add('hidden');
+        foreignAmountInput.value = '';
+      }
+      calculateFromForeign();
+    }
+
+    function calculateFromForeign() {
+      const category = document.getElementById('category').value;
+      if (!category.includes('Ad Cost') && !category.includes('China Product')) return;
+
+      const fAmount = parseFloat(document.getElementById('foreignAmount').value) || 0;
+      const fRate = parseFloat(document.getElementById('foreignRate').value) || 0;
+
+      if (fAmount > 0 && fRate > 0) {
+        const totalBdt = (fAmount * fRate).toFixed(2);
+        document.getElementById('amount').value = totalBdt;
+      }
+    }
+
+    function handleAddTransaction(e) {
+      e.preventDefault();
+      const type = document.querySelector('input[name="entryType"]:checked').value;
+      const category = document.getElementById('category').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+      const date = document.getElementById('date').value;
+      const notes = document.getElementById('notes').value.trim();
+
+      let foreignInfo = null;
+      if (category.includes('Ad Cost') || category.includes('China Product')) {
+        const fAmount = parseFloat(document.getElementById('foreignAmount').value);
+        const fRate = parseFloat(document.getElementById('foreignRate').value);
+        if (fAmount && fRate) {
+          foreignInfo = {
+            currency: category.includes('Ad Cost') ? 'USD' : 'RMB',
+            symbol: category.includes('Ad Cost') ? '$' : '¥',
+            amount: fAmount,
+            rate: fRate
+          };
+        }
+      }
+
+      const newEntry = {
+        id: Date.now().toString(),
+        type,
+        category,
+        amount,
+        date,
+        notes,
+        foreignInfo
+      };
+
+      transactions.push(newEntry);
+      saveData();
+      renderDashboard();
+
+      document.getElementById('amount').value = '';
+      document.getElementById('foreignAmount').value = '';
+      document.getElementById('notes').value = '';
+    }
+
+    function deleteTransaction(id) {
+      if (confirm('Are you sure you want to delete this record?')) {
+        transactions = transactions.filter(item => item.id !== id);
+        saveData();
+        renderDashboard();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    }
+
+    function renderDashboard() {
+      const selectedMonth = document.getElementById('filterMonth').value; // YYYY-MM
+      const filtered = transactions.filter(item => item.date.startsWith(selectedMonth));
+
+      let revenue = 0;
+      let expenses = 0;
+      
+      const groupTotals = {
+        "📦 Sourcing & Production": 0,
+        "🏷️ Packaging & Branding": 0,
+        "📢 Marketing & Promotion": 0,
+        "🚚 Logistics & Delivery": 0,
+        "🏢 Operations & Team": 0
+      };
+
+      const categoryTotals = {};
+
+      filtered.forEach(item => {
+        if (item.type === 'income') {
+          revenue += item.amount;
+        } else {
+          expenses += item.amount;
+          
+          let cat = item.category;
+          if (cat === 'Purchase') cat = 'China Product Purchase';
+          if (cat === 'Salary') cat = 'Staff Salary & Allowances';
+
+          categoryTotals[cat] = (categoryTotals[cat] || 0) + item.amount;
+
+          const grp = getCategoryGroup(cat);
+          if (groupTotals[grp] !== undefined) {
+            groupTotals[grp] += item.amount;
+          } else {
+            groupTotals["🏢 Operations & Team"] += item.amount;
+          }
+        }
+      });
+
+      const netProfit = revenue - expenses;
+      const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+
+      // Update Summary Cards
+      document.getElementById('totalRevenue').textContent = formatBDT(revenue);
+      document.getElementById('totalExpenses').textContent = formatBDT(expenses);
+      
+      const netProfitEl = document.getElementById('netProfit');
+      netProfitEl.textContent = formatBDT(netProfit);
+      netProfitEl.className = `text-2xl font-bold mt-2 ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+      
+      document.getElementById('profitMargin').textContent = `${margin}%`;
+
+      // Update Group Breakdown Cards
+      const groupContainer = document.getElementById('groupBreakdown');
+      groupContainer.innerHTML = Object.entries(groupTotals).map(([grp, amt]) => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+          <div class="text-xs text-slate-500 truncate" title="${grp}">${grp}</div>
+          <div class="text-sm font-semibold text-slate-900 mt-1">${formatBDT(amt)}</div>
+        </div>
+      `).join('');
+
+      // Update Detailed Active Category Breakdown
+      const detailedContainer = document.getElementById('detailedBreakdown');
+      const activeCats = Object.entries(categoryTotals).sort((a, b) => b - a);
+      if (activeCats.length === 0) {
+        detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-2">No expenses recorded for this month.</div>`;
+      } else {
+        detailedContainer.innerHTML = activeCats.map(([cat, amt]) => `
+          <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs">
+            <span class="text-slate-600 truncate pr-2" title="${cat}">${cat}</span>
+            <span class="font-semibold text-slate-800">${formatBDT(amt)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Update Transactions Table
+      const tableBody = document.getElementById('transactionTable');
+      tableBody.innerHTML = '';
+      
+      const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (sorted.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No records found for this month.</td></tr>`;
+      } else {
+        sorted.forEach(item => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50';
+
+          let displayCategory = item.category;
+          if (displayCategory === 'Purchase') displayCategory = 'China Product Purchase';
+          if (displayCategory === 'Salary') displayCategory = 'Staff Salary & Allowances';
+
+          let foreignBadge = '';
+          if (item.foreignInfo) {
+            foreignBadge = `<div class="text-[11px] text-slate-400 mt-0.5 font-normal">(${item.foreignInfo.symbol}${item.foreignInfo.amount.toLocaleString()} @ ৳${item.foreignInfo.rate}/${item.foreignInfo.currency})</div>`;
+          }
+
+          row.innerHTML = `
+            <td class="py-3 px-4 text-slate-600 whitespace-nowrap">${item.date}</td>
+            <td class="py-3 px-4">
+              <span class="inline-block px-2 py-0.5 text-xs font-medium rounded ${item.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                ${item.type === 'income' ? 'Income' : 'Expense'}
+              </span>
+            </td>
+            <td class="py-3 px-4 font-medium text-slate-800">${displayCategory}</td>
+            <td class="py-3 px-4 text-slate-500">${item.notes || '-'}</td>
+            <td class="py-3 px-4 text-right font-semibold ${item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+              <div>${item.type === 'income' ? '+' : '-'}${formatBDT(item.amount)}</div>
+              ${foreignBadge}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="deleteTransaction('${item.id}')" class="text-slate-400 hover:text-rose-600 text-xs font-semibold">Delete</button>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      renderTrendChart();
+    }
+
+    function renderTrendChart() {
+      const months = [];
+      const revenueData = [];
+      const expenseData = [];
+      const profitData = [];
+
+      const today = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const mLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+        months.push(mLabel);
+
+        const mTransactions = transactions.filter(t => t.date.startsWith(mKey));
+        let mRev = 0;
+        let mExp = 0;
+        mTransactions.forEach(t => {
+          if (t.type === 'income') mRev += t.amount;
+          else mExp += t.amount;
+        });
+
+        revenueData.push(mRev);
+        expenseData.push(mExp);
+        profitData.push(mRev - mExp);
+      }
+
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [
+            { label: 'Sales (৳)', data: revenueData, backgroundColor: '#10b981' },
+            { label: 'Expenses (৳)', data: expenseData, backgroundColor: '#f43f5e' },
+            { label: 'Profit/Loss (৳)', data: profitData, type: 'line', borderColor: '#3b82f6', tension: 0.2, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12 } }
+          }
+        }
+      });
+    }
+
+    function formatBDT(val) {
+      return '৳ ' + Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Standalone Quick Converter
+    function convertCurrency() {
+      const from = document.getElementById('convFrom').value;
+      const to = document.getElementById('convTo').value;
+      const amount = parseFloat(document.getElementById('convAmount').value) || 0;
+
+      const rateFrom = exchangeRates[from] || 1;
+      const rateTo = exchangeRates[to] || 1;
+
+      const inUSD = amount / rateFrom;
+      const converted = inUSD * rateTo;
+      quickConvertedRaw = converted;
+
+      const symbols = { BDT: '৳', USD: '$', CNY: '¥', EUR: '€' };
+      const sym = symbols[to] || '';
+      document.getElementById('convResult').textContent = `${sym} ${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function applyQuickConvertedAmount() {
+      if (quickConvertedRaw > 0) {
+        document.getElementById('amount').value = quickConvertedRaw.toFixed(2);
+        document.getElementById('amount').focus();
+      }
+    }
+
+    // Export to CSV
+    function exportCSV() {
+      if (transactions.length === 0) return alert('No transactions to export.');
+      let csv = 'ID,Date,Type,Group,Category,Amount (BDT),Foreign Info,Description\n';
+      transactions.forEach(t => {
+        let fStr = t.foreignInfo ? `${t.foreignInfo.symbol}${t.foreignInfo.amount} @ ${t.foreignInfo.rate}` : '';
+        let cat = t.category;
+        if (cat === 'Purchase') cat = 'China Product Purchase';
+        if (cat === 'Salary') cat = 'Staff Salary & Allowances';
+        const grp = t.type === 'income' ? 'Income' : getCategoryGroup(cat);
+        csv += `"${t.id}","${t.date}","${t.type}","${grp}","${cat}","${t.amount}","${fStr}","${(t.notes || '').replace(/"/g, '""')}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tymino_records_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    // Backup & Restore
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `tymino_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            transactions = imported;
+            saveData();
+            renderDashboard();
+            alert('Backup restored successfully.');
+          } else {
+            alert('Invalid backup file format.');
+          }
+        } catch (err) {
+          alert('Failed to parse JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
