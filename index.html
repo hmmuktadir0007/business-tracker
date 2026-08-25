@@ -45,7 +45,7 @@
             <h1 class="text-2xl font-black text-slate-900 tracking-tight"><span class="text-blue-600">TYMINO:</span> Hub</h1>
             <span class="px-2 py-0.5 text-[11px] font-bold bg-blue-100 text-blue-800 rounded-full">Finance & Inventory Pro</span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">Sourcing (RMB), Landed COGS, Pricing Formulas, Stock Levels & Profit in BDT (৳)</p>
+          <p class="text-xs text-slate-500 mt-0.5">Sourcing (RMB), Landed COGS, S/M/L/XL/XXL Sizes, Auto-Stock Sync & P&L (৳)</p>
         </div>
 
         <!-- Main Navigation Tabs -->
@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <!-- Financial Sub-bar Controls (Only visible on Finance Tab) -->
+      <!-- Financial Sub-bar Controls -->
       <div id="financeControlsBar" class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-100 no-print">
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs">
@@ -186,9 +186,35 @@
                 <select id="category" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" onchange="handleCategoryChange()"></select>
               </div>
 
-              <div id="orderCountBox">
-                <label for="orderCount" class="block text-[11px] font-semibold text-slate-600 mb-1">Number of Orders / Units (Optional)</label>
-                <input type="number" min="1" id="orderCount" placeholder="e.g. 5 orders or 10 pcs" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <!-- INVENTORY PRODUCT & SIZE LINKING BOX (Auto Stock Sync) -->
+              <div id="productLinkBox" class="p-3 bg-slate-50 border border-blue-200 rounded-xl space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="linkProductSKU" class="block text-[11px] font-bold text-blue-900">📦 Link Product SKU (Auto Stock Sync)</label>
+                  <span class="text-[10px] text-blue-600 font-medium">Updates Inventory</span>
+                </div>
+                <select id="linkProductSKU" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="handleLinkedProductChange()">
+                  <option value="">-- No Product (General Entry) --</option>
+                </select>
+
+                <!-- Size & Qty Selection Row -->
+                <div id="productSizeQtyRow" class="hidden grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Select Size</label>
+                    <select id="linkProductSize" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none" onchange="updateLinkedPriceCalculation()">
+                      <option value="ALL">All / Free Size</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Quantity (pcs)</label>
+                    <input type="number" min="1" id="linkProductQty" value="1" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white font-bold text-blue-700 focus:outline-none" oninput="updateLinkedPriceCalculation()">
+                  </div>
+                </div>
+                <div id="productStockHint" class="text-[10px] text-slate-500 hidden font-medium"></div>
               </div>
 
               <!-- Foreign Currency Conversion Helper -->
@@ -226,7 +252,7 @@
 
               <div>
                 <label for="notes" class="block text-[11px] font-semibold text-slate-600 mb-1">Description / Note</label>
-                <input type="text" id="notes" placeholder="e.g. 1688 fabric batch #4, Pathao parcel ID" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="notes" placeholder="e.g. Pathao parcel ID, Customer Return size M, 1688 order" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
 
               <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-sm">
@@ -320,7 +346,7 @@
 
           <div class="flex flex-wrap items-center gap-2 no-print">
             <div class="relative">
-              <input type="text" id="tableSearch" placeholder="Search notes, ID, tags..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="handleTableFilterChange()">
+              <input type="text" id="tableSearch" placeholder="Search notes, SKU, ID..." class="border border-slate-300 rounded-xl pl-3 pr-8 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56" oninput="handleTableFilterChange()">
               <span class="absolute right-2.5 top-2 text-slate-400 text-xs">🔍</span>
             </div>
 
@@ -346,7 +372,7 @@
                 <th class="py-2.5 px-3">Date</th>
                 <th class="py-2.5 px-3">Type</th>
                 <th class="py-2.5 px-3">Category</th>
-                <th class="py-2.5 px-3">Description & Receipt</th>
+                <th class="py-2.5 px-3">Product / Details / Receipt</th>
                 <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
                 <th class="py-2.5 px-3 text-center no-print">Actions</th>
               </tr>
@@ -386,7 +412,7 @@
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between">
             <p class="text-[11px] font-semibold text-slate-400 uppercase">Capital Tied Up</p>
-            <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">Asset</span>
+            <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded font-bold">Asset</span>
           </div>
           <p id="invTotalAssetValue" class="text-xl font-bold text-amber-600 mt-1">৳ 0.00</p>
           <p class="text-[10px] text-slate-400 mt-0.5">Stock × Unit Landed COGS</p>
@@ -411,7 +437,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-base font-bold text-slate-900">Product SKU Catalog & Cost Breakdowns</h2>
-            <p class="text-[11px] text-slate-500">Manage Landed COGS, Weights, Target CPAs, Stock, and Selling Prices</p>
+            <p class="text-[11px] text-slate-500">Manage Landed COGS, Weights, S/M/L/XL/XXL Sizes, Stock & Prices</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2 no-print">
@@ -429,18 +455,18 @@
           </div>
         </div>
 
-        <!-- Inventory Products Table -->
+        <!-- Inventory Products Table (with 2x Bigger Product Images) -->
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-[10px] uppercase font-bold tracking-wider">
               <tr>
-                <th class="py-2.5 px-3">Product</th>
-                <th class="py-2.5 px-3">Item Code (SKU)</th>
-                <th class="py-2.5 px-3">Stock on Hand</th>
-                <th class="py-2.5 px-3">Landed Cost (COGS)</th>
-                <th class="py-2.5 px-3">Target CPA & Profit</th>
-                <th class="py-2.5 px-3 text-right">Selling Price</th>
-                <th class="py-2.5 px-3 text-center no-print">Actions</th>
+                <th class="py-3 px-3">Product Image & Name</th>
+                <th class="py-3 px-3">Item Code (SKU)</th>
+                <th class="py-3 px-3">Stock on Hand (By Size)</th>
+                <th class="py-3 px-3">Landed Cost (COGS)</th>
+                <th class="py-3 px-3">Target CPA & Profit</th>
+                <th class="py-3 px-3 text-right">Selling Price</th>
+                <th class="py-3 px-3 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody id="inventoryTableBody" class="divide-y divide-slate-100"></tbody>
@@ -460,7 +486,7 @@
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
         <div>
           <h3 id="productModalTitle" class="text-base font-bold text-slate-900">Add New Product & Cost Formula</h3>
-          <p class="text-xs text-slate-500">Calculate Landed COGS, Sourcing, Weight, Packaging & Selling Price</p>
+          <p class="text-xs text-slate-500">Calculate Landed COGS, S/M/L/XL/XXL Sizes, Weight, Packaging & Selling Price</p>
         </div>
         <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -472,29 +498,55 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Product Name</label>
-            <input type="text" id="prodName" required placeholder="e.g., Premium Linen Long Sleeve Shirt" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="prodName" required placeholder="e.g., Red Baby Dress, Linen Shirt" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="block text-[11px] font-semibold text-slate-700">Item Code (SKU)</label>
               <button type="button" onclick="autoGenerateSKU()" class="text-[10px] text-blue-600 font-semibold hover:underline">Auto</button>
             </div>
-            <input type="text" id="prodSKU" required placeholder="TYM-LS-001" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+            <input type="text" id="prodSKU" required placeholder="TYM-677" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Category</label>
-            <input type="text" id="prodCategory" placeholder="e.g. Shirts, Kids, Polos" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="prodCategory" placeholder="e.g. Baby Dress, Shirts, Kids" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Initial Stock (pcs)</label>
-            <input type="number" min="0" id="prodStock" required value="50" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Low Stock Alert (pcs)</label>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Low Stock Alert Threshold (pcs)</label>
             <input type="number" min="1" id="prodAlertLimit" value="10" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- SIZE VARIATION BREAKDOWN (S, M, L, XL, XXL) -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-900">👕 Stock by Size Variations (pcs)</label>
+            <span class="text-[11px] text-blue-700 font-extrabold" id="totalSizeSumLabel">Total Stock: 0 pcs</span>
+          </div>
+          <div class="grid grid-cols-5 gap-2 text-center">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 mb-0.5">S</label>
+              <input type="number" min="0" id="size_S" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-center font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateTotalFromSizes()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 mb-0.5">M</label>
+              <input type="number" min="0" id="size_M" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-center font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateTotalFromSizes()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 mb-0.5">L</label>
+              <input type="number" min="0" id="size_L" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-center font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateTotalFromSizes()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 mb-0.5">XL</label>
+              <input type="number" min="0" id="size_XL" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-center font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateTotalFromSizes()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 mb-0.5">XXL</label>
+              <input type="number" min="0" id="size_XXL" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-center font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="calculateTotalFromSizes()">
+            </div>
           </div>
         </div>
 
@@ -502,7 +554,7 @@
           <label class="block text-[11px] font-semibold text-slate-700 mb-1">Product Image URL (Optional)</label>
           <input type="url" id="prodImage" placeholder="https://example.com/image.jpg or Google Drive direct link" class="w-full border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="previewProductImage()">
           <div id="imagePreviewContainer" class="hidden mt-2 flex items-center gap-2">
-            <img id="imagePreviewEl" src="" class="w-12 h-12 object-cover rounded-lg border border-slate-200">
+            <img id="imagePreviewEl" src="" class="w-16 h-16 object-cover rounded-xl border border-slate-200 shadow-xs">
             <span class="text-[11px] text-slate-500">Image thumbnail preview</span>
           </div>
         </div>
@@ -545,9 +597,9 @@
               <span id="calcPackBDT">৳ 0.00</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <input type="number" step="any" id="calcPolyBag" placeholder="Poly Bag (৳ 5)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
-              <input type="number" step="any" id="calcTagLabel" placeholder="Tag/Label (৳ 8)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
-              <input type="number" step="any" id="calcBoxTape" placeholder="Box/Tape (৳ 15)" class="border border-blue-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcPolyBag" placeholder="Poly Bag (৳ 5)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcTagLabel" placeholder="Tag/Label (৳ 8)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
+              <input type="number" step="any" id="calcBoxTape" placeholder="Box/Tape (৳ 15)" class="border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none" oninput="recomputeProductFormula()">
             </div>
           </div>
 
@@ -598,26 +650,16 @@
   <div id="importModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
       <h3 class="text-base font-bold text-slate-900">Safe Backup Restore</h3>
-      <p class="text-xs text-slate-600 leading-relaxed">
-        Restore transactions and inventory records safely without wiping existing data.
-      </p>
-
+      <p class="text-xs text-slate-600 leading-relaxed">Restore transactions and inventory records safely without wiping existing data.</p>
       <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
         <div class="flex justify-between"><span>Current Transactions:</span> <strong id="modalCurrentCount">0</strong></div>
         <div class="flex justify-between"><span>Records in File:</span> <strong id="modalIncomingCount">0</strong></div>
         <div class="flex justify-between text-blue-600"><span>New Non-Duplicate Records:</span> <strong id="modalNewCount">0</strong></div>
       </div>
-
       <div class="space-y-2 pt-2">
-        <button onclick="confirmImport('merge')" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
-          Merge (Keep Existing & Add New Records)
-        </button>
-        <button onclick="confirmImport('overwrite')" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition">
-          Full Overwrite (Replace Everything)
-        </button>
-        <button onclick="closeImportModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-          Cancel
-        </button>
+        <button onclick="confirmImport('merge')" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">Merge (Keep Existing & Add New)</button>
+        <button onclick="confirmImport('overwrite')" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition">Full Overwrite (Replace Everything)</button>
+        <button onclick="closeImportModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">Cancel</button>
       </div>
     </div>
   </div>
@@ -630,7 +672,6 @@
         <button onclick="closeBudgetModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
       </div>
       <p class="text-xs text-slate-500">Set monthly maximum spend limits (BDT ৳) to receive warning alerts.</p>
-
       <div class="space-y-2.5 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-0.5">Ad Cost (Meta / Ads)</label>
@@ -649,10 +690,7 @@
           <input type="number" id="budget_logistics" placeholder="e.g. 35000" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5">
         </div>
       </div>
-
-      <button onclick="saveBudgets()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
-        Save Budget Limits
-      </button>
+      <button onclick="saveBudgets()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">Save Budget Limits</button>
     </div>
   </div>
 
@@ -687,6 +725,7 @@
       expense: {
         "📦 Sourcing & Production (COGS)": [
           "China Product Purchase",
+          "Customer Return / Refund (+Restock)",
           "Fabric & Raw Materials",
           "Local Factory / Stitching Cost",
           "Sample & Development Cost"
@@ -721,7 +760,7 @@
 
     function isCOGS(categoryName) {
       const cogsKeywords = [
-        'China Product', 'Purchase', 'Fabric', 'Stitching', 'Sample',
+        'China Product', 'Purchase', 'Return', 'Fabric', 'Stitching', 'Sample',
         'Poly Bag', 'Printer', 'Tags', 'Labels', 'Packaging', 'Boxes', 'Tape',
         'Shipping', 'Pathao', 'Courier', 'Transit', 'RTO', 'Delivery'
       ];
@@ -736,11 +775,11 @@
       return "🏢 Operations & Team (OpEx)";
     }
 
-    // Lifecycle Init
     document.addEventListener('DOMContentLoaded', () => {
       checkPinStatus();
       initDates();
       updateCategories();
+      populateProductLinkDropdown();
       renderDashboard();
       renderInventoryDashboard();
       fetchExchangeRates();
@@ -749,7 +788,6 @@
       document.getElementById('productForm').addEventListener('submit', handleSaveProduct);
     });
 
-    // Main Tab Switching
     function switchMainTab(tab) {
       const fSec = document.getElementById('viewFinanceSection');
       const iSec = document.getElementById('viewInventorySection');
@@ -763,6 +801,7 @@
         fBar.classList.remove('hidden');
         fBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-blue-700 shadow-xs';
         iBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+        populateProductLinkDropdown();
         renderDashboard();
       } else {
         fSec.classList.add('hidden');
@@ -837,6 +876,17 @@
       document.getElementById('prodSKU').value = `${prefix}-${randomCode}`;
     }
 
+    function calculateTotalFromSizes() {
+      const s = parseInt(document.getElementById('size_S').value) || 0;
+      const m = parseInt(document.getElementById('size_M').value) || 0;
+      const l = parseInt(document.getElementById('size_L').value) || 0;
+      const xl = parseInt(document.getElementById('size_XL').value) || 0;
+      const xxl = parseInt(document.getElementById('size_XXL').value) || 0;
+      const total = s + m + l + xl + xxl;
+      document.getElementById('totalSizeSumLabel').textContent = `Total Stock: ${total} pcs`;
+      return total;
+    }
+
     function previewProductImage() {
       const url = document.getElementById('prodImage').value.trim();
       const container = document.getElementById('imagePreviewContainer');
@@ -899,9 +949,15 @@
           document.getElementById('prodName').value = item.name;
           document.getElementById('prodSKU').value = item.sku;
           document.getElementById('prodCategory').value = item.category || '';
-          document.getElementById('prodStock').value = item.stock;
           document.getElementById('prodAlertLimit').value = item.alertLimit || 10;
           document.getElementById('prodImage').value = item.image || '';
+
+          const sizes = item.sizes || {};
+          document.getElementById('size_S').value = sizes.S || 0;
+          document.getElementById('size_M').value = sizes.M || 0;
+          document.getElementById('size_L').value = sizes.L || 0;
+          document.getElementById('size_XL').value = sizes.XL || 0;
+          document.getElementById('size_XXL').value = sizes.XXL || 0;
 
           document.getElementById('calcBuyRMB').value = item.costing.rmbPrice || '';
           document.getElementById('calcRMBRate').value = item.costing.rmbRate || defaultRmbRate;
@@ -920,6 +976,7 @@
         autoGenerateSKU();
       }
 
+      calculateTotalFromSizes();
       recomputeProductFormula();
       document.getElementById('productModal').classList.remove('hidden');
     }
@@ -934,9 +991,17 @@
       const name = document.getElementById('prodName').value.trim();
       const sku = document.getElementById('prodSKU').value.trim().toUpperCase();
       const category = document.getElementById('prodCategory').value.trim();
-      const stock = parseInt(document.getElementById('prodStock').value) || 0;
       const alertLimit = parseInt(document.getElementById('prodAlertLimit').value) || 10;
       const image = document.getElementById('prodImage').value.trim();
+
+      const sizes = {
+        S: parseInt(document.getElementById('size_S').value) || 0,
+        M: parseInt(document.getElementById('size_M').value) || 0,
+        L: parseInt(document.getElementById('size_L').value) || 0,
+        XL: parseInt(document.getElementById('size_XL').value) || 0,
+        XXL: parseInt(document.getElementById('size_XXL').value) || 0
+      };
+      const totalStock = sizes.S + sizes.M + sizes.L + sizes.XL + sizes.XXL;
 
       const rmbPrice = parseFloat(document.getElementById('calcBuyRMB').value) || 0;
       const rmbRate = parseFloat(document.getElementById('calcRMBRate').value) || 17.20;
@@ -956,7 +1021,8 @@
         name,
         sku,
         category,
-        stock,
+        sizes,
+        stock: totalStock,
         alertLimit,
         image,
         landedCOGS,
@@ -975,6 +1041,7 @@
       }
 
       saveInventoryData();
+      populateProductLinkDropdown();
       renderInventoryDashboard();
       closeProductModal();
     }
@@ -983,8 +1050,12 @@
       const p = inventory.find(i => i.id === prodId);
       if (p) {
         p.stock = Math.max(0, p.stock + delta);
+        if (p.sizes && p.sizes.M !== undefined) {
+          p.sizes.M = Math.max(0, p.sizes.M + delta);
+        }
         saveInventoryData();
         renderInventoryDashboard();
+        populateProductLinkDropdown();
       }
     }
 
@@ -992,6 +1063,7 @@
       if (confirm('Delete this product from inventory?')) {
         inventory = inventory.filter(p => p.id !== id);
         saveInventoryData();
+        populateProductLinkDropdown();
         renderInventoryDashboard();
       }
     }
@@ -1008,10 +1080,11 @@
       let lowStockCount = 0;
 
       inventory.forEach(p => {
-        totalUnits += (p.stock || 0);
-        totalAssetValue += (p.stock || 0) * (p.landedCOGS || 0);
-        totalRetailValue += (p.stock || 0) * (p.sellingPrice || 0);
-        if (p.stock <= (p.alertLimit || 10)) lowStockCount++;
+        const sCount = (p.stock !== undefined) ? p.stock : Object.values(p.sizes || {}).reduce((a,b)=>a+b, 0);
+        totalUnits += sCount;
+        totalAssetValue += sCount * (p.landedCOGS || 0);
+        totalRetailValue += sCount * (p.sellingPrice || 0);
+        if (sCount <= (p.alertLimit || 10)) lowStockCount++;
       });
 
       document.getElementById('invTotalSKUs').textContent = `${totalSKUs} SKUs`;
@@ -1034,52 +1107,67 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">No products found. Click "+ Add New Product SKU" to create one.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">No products found. Click "+ Add New Product SKU" to create one.</td></tr>`;
         return;
       }
 
       filtered.forEach(p => {
-        const isLow = p.stock <= (p.alertLimit || 10);
+        const sCount = (p.stock !== undefined) ? p.stock : Object.values(p.sizes || {}).reduce((a,b)=>a+b, 0);
+        const isLow = sCount <= (p.alertLimit || 10);
         const grossMargin = p.sellingPrice > 0 ? (((p.sellingPrice - p.landedCOGS) / p.sellingPrice) * 100).toFixed(0) : 0;
 
-        const defaultImg = 'https://via.placeholder.com/60?text=TYMINO';
+        const defaultImg = 'https://via.placeholder.com/120?text=TYMINO';
         const imgUrl = p.image || defaultImg;
+
+        // Size Badges
+        const sizes = p.sizes || { S: 0, M: sCount, L: 0, XL: 0, XXL: 0 };
+        const sizeBadgesHTML = `
+          <div class="flex flex-wrap gap-1 mt-1.5">
+            <span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium">S: <strong>${sizes.S || 0}</strong></span>
+            <span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium">M: <strong>${sizes.M || 0}</strong></span>
+            <span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium">L: <strong>${sizes.L || 0}</strong></span>
+            <span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium">XL: <strong>${sizes.XL || 0}</strong></span>
+            <span class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium">XXL: <strong>${sizes.XXL || 0}</strong></span>
+          </div>
+        `;
 
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-50 transition';
         row.innerHTML = `
-          <td class="py-3 px-3">
-            <div class="flex items-center gap-2.5">
-              <img src="${imgUrl}" class="w-10 h-10 object-cover rounded-lg border border-slate-200" onerror="this.src='${defaultImg}'">
+          <td class="py-3.5 px-3">
+            <div class="flex items-center gap-3.5">
+              <!-- 2X BIGGER PRODUCT IMAGE (w-20 h-20 / 80px x 80px) -->
+              <img src="${imgUrl}" class="w-20 h-20 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0" onerror="this.src='${defaultImg}'">
               <div>
-                <div class="font-bold text-slate-900">${p.name}</div>
-                <div class="text-[10px] text-slate-400">${p.category || 'General'}</div>
+                <div class="font-bold text-sm text-slate-900 leading-snug">${p.name}</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${p.category || 'Apparel / General'}</div>
               </div>
             </div>
           </td>
-          <td class="py-3 px-3 font-mono font-bold text-blue-700 text-xs">${p.sku}</td>
-          <td class="py-3 px-3">
+          <td class="py-3.5 px-3 font-mono font-bold text-blue-700 text-xs">${p.sku}</td>
+          <td class="py-3.5 px-3">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-xs ${isLow ? 'text-rose-600' : 'text-slate-800'}">${p.stock} pcs</span>
-              ${isLow ? '<span class="px-1 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-bold rounded">Low</span>' : ''}
-              <div class="flex items-center gap-1 ml-1 no-print">
+              <span class="font-extrabold text-sm ${isLow ? 'text-rose-600' : 'text-slate-900'}">${sCount} pcs</span>
+              ${isLow ? '<span class="px-1.5 py-0.2 bg-rose-100 text-rose-700 text-[10px] font-bold rounded">Low Stock</span>' : ''}
+              <div class="flex items-center gap-1 ml-auto no-print">
                 <button onclick="adjustStock('${p.id}', -1)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold">−</button>
                 <button onclick="adjustStock('${p.id}', 1)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold">+</button>
               </div>
             </div>
+            ${sizeBadgesHTML}
           </td>
-          <td class="py-3 px-3">
-            <div class="font-bold text-slate-900">${formatBDT(p.landedCOGS)}</div>
+          <td class="py-3.5 px-3">
+            <div class="font-bold text-slate-900 text-xs">${formatBDT(p.landedCOGS)}</div>
             <div class="text-[10px] text-slate-400">¥${p.costing.rmbPrice || 0} + ${p.costing.weight || 0}kg</div>
           </td>
-          <td class="py-3 px-3">
+          <td class="py-3.5 px-3">
             <div class="text-xs text-slate-700">CPA: ${formatBDT(p.costing.targetCPA || 0)}</div>
             <div class="text-[10px] font-bold text-emerald-600">Profit: ${formatBDT(p.costing.targetProfit || 0)} (${grossMargin}% Gross)</div>
           </td>
-          <td class="py-3 px-3 text-right">
+          <td class="py-3.5 px-3 text-right">
             <div class="text-sm font-black text-emerald-600">${formatBDT(p.sellingPrice)}</div>
           </td>
-          <td class="py-3 px-3 text-center whitespace-nowrap no-print">
+          <td class="py-3.5 px-3 text-center whitespace-nowrap no-print">
             <button onclick="openProductModal('${p.id}')" class="text-blue-600 hover:text-blue-800 font-semibold text-[11px] mr-2">Edit</button>
             <button onclick="deleteProduct('${p.id}')" class="text-slate-400 hover:text-rose-600 font-semibold text-[11px]">Delete</button>
           </td>
@@ -1090,9 +1178,10 @@
 
     function exportInventoryCSV() {
       if (inventory.length === 0) return alert('No inventory items to export.');
-      let csv = 'SKU,Product_Name,Category,Stock_Qty,Landed_COGS_BDT,Selling_Price_BDT,Target_Ad_CPA,Target_Profit,RMB_Price,Weight_KG,Image_URL\n';
+      let csv = 'SKU,Product_Name,Category,Total_Stock,Size_S,Size_M,Size_L,Size_XL,Size_XXL,Landed_COGS_BDT,Selling_Price_BDT,Target_Ad_CPA,Target_Profit,RMB_Price,Weight_KG,Image_URL\n';
       inventory.forEach(p => {
-        csv += `"${p.sku}","${p.name}","${p.category || ''}","${p.stock}","${p.landedCOGS}","${p.sellingPrice}","${p.costing.targetCPA || 0}","${p.costing.targetProfit || 0}","${p.costing.rmbPrice || 0}","${p.costing.weight || 0}","${p.image || ''}"\n`;
+        const s = p.sizes || {};
+        csv += `"${p.sku}","${p.name}","${p.category || ''}","${p.stock}","${s.S||0}","${s.M||0}","${s.L||0}","${s.XL||0}","${s.XXL||0}","${p.landedCOGS}","${p.sellingPrice}","${p.costing.targetCPA || 0}","${p.costing.targetProfit || 0}","${p.costing.rmbPrice || 0}","${p.costing.weight || 0}","${p.image || ''}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1100,6 +1189,105 @@
       a.href = url;
       a.download = `tymino_inventory_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+    }
+
+    // =========================================================
+    // INVENTORY SYNC WITH TRANSACTIONS (SALES, PURCHASES, RETURNS)
+    // =========================================================
+
+    function populateProductLinkDropdown() {
+      const select = document.getElementById('linkProductSKU');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">-- No Product (General Entry) --</option>';
+
+      inventory.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `[${p.sku}] ${p.name} (Stock: ${p.stock} pcs | ৳${p.sellingPrice})`;
+        select.appendChild(opt);
+      });
+      select.value = currentVal;
+    }
+
+    function handleLinkedProductChange() {
+      const prodId = document.getElementById('linkProductSKU').value;
+      const sizeQtyRow = document.getElementById('productSizeQtyRow');
+      const hint = document.getElementById('productStockHint');
+
+      if (!prodId) {
+        sizeQtyRow.classList.add('hidden');
+        hint.classList.add('hidden');
+        return;
+      }
+
+      const p = inventory.find(i => i.id === prodId);
+      if (!p) return;
+
+      sizeQtyRow.classList.remove('hidden');
+      hint.classList.remove('hidden');
+
+      const s = p.sizes || { S:0, M:p.stock, L:0, XL:0, XXL:0 };
+      hint.innerHTML = `Stock Available: <span class="font-bold text-slate-700">S: ${s.S||0} | M: ${s.M||0} | L: ${s.L||0} | XL: ${s.XL||0} | XXL: ${s.XXL||0} (Total: ${p.stock})</span>`;
+
+      updateLinkedPriceCalculation();
+    }
+
+    function updateLinkedPriceCalculation() {
+      const prodId = document.getElementById('linkProductSKU').value;
+      if (!prodId) return;
+
+      const p = inventory.find(i => i.id === prodId);
+      if (!p) return;
+
+      const type = document.querySelector('input[name="entryType"]:checked').value;
+      const cat = document.getElementById('category').value;
+      const qty = parseInt(document.getElementById('linkProductQty').value) || 1;
+
+      if (type === 'income') {
+        // Auto-fill selling price for sales
+        document.getElementById('amount').value = (p.sellingPrice * qty).toFixed(2);
+      } else if (cat.includes('China Product')) {
+        // Auto-fill RMB & calculate for China Purchase
+        if (p.costing && p.costing.rmbPrice) {
+          document.getElementById('foreignAmount').value = (p.costing.rmbPrice * qty).toFixed(2);
+          calculateFromForeign();
+        }
+      }
+    }
+
+    function syncStockFromTransaction(tx, isDeleting = false) {
+      if (!tx.linkedProductId) return;
+
+      const p = inventory.find(i => i.id === tx.linkedProductId);
+      if (!p) return;
+
+      const qty = parseInt(tx.linkedQty) || 1;
+      const size = tx.linkedSize || 'M';
+      if (!p.sizes) p.sizes = { S:0, M:p.stock, L:0, XL:0, XXL:0 };
+
+      const isReturn = tx.category.includes('Return');
+      const isPurchase = tx.category.includes('China Product') || tx.category.includes('Purchase');
+      const isSale = (tx.type === 'income');
+
+      // Calculate Stock Direction
+      let delta = 0;
+      if (isSale) {
+        delta = isDeleting ? +qty : -qty; // Sale deducts stock; deleting sale restores stock
+      } else if (isPurchase || isReturn) {
+        delta = isDeleting ? -qty : +qty; // Purchase & Return adds stock; deleting them deducts stock
+      }
+
+      // Apply to Total and Size Stock
+      p.stock = Math.max(0, p.stock + delta);
+      if (size !== 'ALL' && p.sizes[size] !== undefined) {
+        p.sizes[size] = Math.max(0, p.sizes[size] + delta);
+      } else if (p.sizes.M !== undefined) {
+        p.sizes.M = Math.max(0, p.sizes.M + delta);
+      }
+
+      saveInventoryData();
+      renderInventoryDashboard();
+      populateProductLinkDropdown();
     }
 
     // ==========================================
@@ -1165,7 +1353,6 @@
         categorySelect.appendChild(optGroup);
       }
 
-      document.getElementById('orderCountBox').style.display = (type === 'income') ? 'block' : 'none';
       handleCategoryChange();
     }
 
@@ -1222,7 +1409,20 @@
       const date = document.getElementById('date').value;
       const notes = document.getElementById('notes').value.trim();
       const receiptLink = document.getElementById('receiptLink').value.trim();
-      const orderCount = parseInt(document.getElementById('orderCount').value) || 0;
+
+      const linkedProductId = document.getElementById('linkProductSKU').value;
+      const linkedSize = document.getElementById('linkProductSize').value;
+      const linkedQty = parseInt(document.getElementById('linkProductQty').value) || 1;
+
+      let linkedProductSKU = '';
+      let linkedProductName = '';
+      if (linkedProductId) {
+        const p = inventory.find(i => i.id === linkedProductId);
+        if (p) {
+          linkedProductSKU = p.sku;
+          linkedProductName = p.name;
+        }
+      }
 
       let foreignInfo = null;
       if (category.includes('Ad Cost') || category.includes('China Product') || category.includes('Purchase')) {
@@ -1238,21 +1438,25 @@
         }
       }
 
+      const txPayload = {
+        id: editingId || Date.now().toString(),
+        type, category, amount, date, notes, receiptLink,
+        linkedProductId, linkedProductSKU, linkedProductName,
+        linkedSize, linkedQty,
+        foreignInfo
+      };
+
       if (editingId) {
         const idx = transactions.findIndex(t => t.id === editingId);
         if (idx !== -1) {
-          transactions[idx] = {
-            ...transactions[idx],
-            type, category, amount, date, notes, receiptLink, orderCount, foreignInfo
-          };
+          syncStockFromTransaction(transactions[idx], true); // reverse old
+          transactions[idx] = txPayload;
+          syncStockFromTransaction(txPayload, false); // apply new
         }
         cancelEditing();
       } else {
-        const newEntry = {
-          id: Date.now().toString(),
-          type, category, amount, date, notes, receiptLink, orderCount, foreignInfo
-        };
-        transactions.push(newEntry);
+        transactions.push(txPayload);
+        syncStockFromTransaction(txPayload, false); // apply stock sync
       }
 
       saveData();
@@ -1281,7 +1485,16 @@
       document.getElementById('date').value = item.date;
       document.getElementById('notes').value = item.notes || '';
       document.getElementById('receiptLink').value = item.receiptLink || '';
-      document.getElementById('orderCount').value = item.orderCount || '';
+
+      if (item.linkedProductId) {
+        document.getElementById('linkProductSKU').value = item.linkedProductId;
+        document.getElementById('linkProductSize').value = item.linkedSize || 'M';
+        document.getElementById('linkProductQty').value = item.linkedQty || 1;
+        handleLinkedProductChange();
+      } else {
+        document.getElementById('linkProductSKU').value = '';
+        handleLinkedProductChange();
+      }
 
       handleCategoryChange();
       if (item.foreignInfo) {
@@ -1306,12 +1519,15 @@
       document.getElementById('foreignAmount').value = '';
       document.getElementById('notes').value = '';
       document.getElementById('receiptLink').value = '';
-      document.getElementById('orderCount').value = '';
+      document.getElementById('linkProductSKU').value = '';
+      handleLinkedProductChange();
     }
 
     function deleteTransaction(id) {
-      if (confirm('Delete this transaction record?')) {
-        transactions = transactions.filter(item => item.id !== id);
+      const item = transactions.find(t => t.id === id);
+      if (item && confirm('Delete this transaction record? (Any linked inventory stock will be adjusted automatically)')) {
+        syncStockFromTransaction(item, true); // Reverse stock
+        transactions = transactions.filter(t => t.id !== id);
         saveData();
         renderDashboard();
       }
@@ -1347,10 +1563,9 @@
       filtered.forEach(item => {
         if (item.type === 'income') {
           revenue += item.amount;
-          totalOrders += (item.orderCount || 1);
+          totalOrders += (item.linkedQty || 1);
         } else {
           let cat = item.category;
-          if (cat === 'Purchase') cat = 'China Product Purchase';
           categoryTotals[cat] = (categoryTotals[cat] || 0) + item.amount;
 
           if (isCOGS(cat)) totalCOGS += item.amount;
@@ -1374,7 +1589,7 @@
       const aov = totalOrders > 0 ? formatBDT(revenue / totalOrders) : '৳ 0';
 
       document.getElementById('totalRevenue').textContent = formatBDT(revenue);
-      document.getElementById('ordersSubtitle').textContent = `${totalOrders} orders recorded`;
+      document.getElementById('ordersSubtitle').textContent = `${totalOrders} orders/pcs`;
 
       document.getElementById('totalCOGS').textContent = formatBDT(totalCOGS);
       document.getElementById('grossProfit').textContent = formatBDT(grossProfit);
@@ -1405,30 +1620,10 @@
         detailedContainer.innerHTML = `<div class="col-span-full text-xs text-slate-400 py-3">No expense items in this period.</div>`;
       } else {
         detailedContainer.innerHTML = activeCats.map(([cat, amt]) => {
-          let budgetInfo = '';
-          const bKey = cat.includes('Ad Cost') ? 'adCost' : cat.includes('China') ? 'sourcing' : cat.includes('Poly') ? 'packaging' : cat.includes('Delivery') ? 'logistics' : null;
-          if (bKey && budgets[bKey]) {
-            const bLimit = budgets[bKey];
-            const pct = Math.min(100, Math.round((amt / bLimit) * 100));
-            const isOver = amt > bLimit;
-            budgetInfo = `
-              <div class="mt-1 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                <div class="h-1.5 rounded-full ${isOver ? 'bg-rose-500' : 'bg-blue-600'}" style="width: ${pct}%"></div>
-              </div>
-              <div class="flex justify-between text-[9px] text-slate-400 mt-0.5">
-                <span>Budget: ${formatBDT(bLimit)}</span>
-                <span class="${isOver ? 'text-rose-600 font-bold' : ''}">${pct}% used</span>
-              </div>
-            `;
-          }
-
           return `
-            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-              <div class="flex items-center justify-between">
-                <span class="font-medium text-slate-700 truncate pr-2" title="${cat}">${cat}</span>
-                <span class="font-bold text-slate-900">${formatBDT(amt)}</span>
-              </div>
-              ${budgetInfo}
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
+              <span class="font-medium text-slate-700 truncate pr-2" title="${cat}">${cat}</span>
+              <span class="font-bold text-slate-900">${formatBDT(amt)}</span>
             </div>
           `;
         }).join('');
@@ -1452,9 +1647,8 @@
         const tDate = new Date(t.date + 'T12:00:00');
         const matchesDate = tDate >= start && tDate <= end;
         const matchesType = (typeFilter === 'all') || (t.type === typeFilter);
-        const searchStr = `${t.category} ${t.notes || ''} ${t.amount} ${t.date} ${t.foreignInfo ? t.foreignInfo.amount : ''}`.toLowerCase();
-        const matchesSearch = !searchQuery || searchStr.includes(searchQuery);
-        return matchesDate && matchesType && matchesSearch;
+        const searchStr = `${t.category} ${t.notes || ''} ${t.linkedProductSKU || ''} ${t.linkedProductName || ''} ${t.amount} ${t.date}`.toLowerCase();
+        return matchesDate && matchesType && (!searchQuery || searchStr.includes(searchQuery));
       });
 
       filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1473,7 +1667,7 @@
       tableBody.innerHTML = '';
 
       if (pageItems.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No transactions match your search or filter.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No transactions match your filter.</td></tr>`;
         return;
       }
 
@@ -1487,7 +1681,20 @@
         }
 
         let linkBadge = item.receiptLink ? `<a href="${item.receiptLink}" target="_blank" class="inline-block ml-1 text-blue-600 hover:underline font-semibold text-[11px]">🔗 Receipt</a>` : '';
-        let ordersBadge = item.orderCount ? `<span class="inline-block ml-1 px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">${item.orderCount} orders</span>` : '';
+        
+        let productTag = '';
+        if (item.linkedProductSKU) {
+          const isRet = item.category.includes('Return');
+          productTag = `
+            <div class="mt-1 flex items-center gap-1.5">
+              <span class="px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded font-mono font-bold text-[10px]">${item.linkedProductSKU}</span>
+              <span class="text-slate-700 font-semibold text-[11px]">${item.linkedProductName}</span>
+              <span class="px-1 py-0.2 ${isRet ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'} rounded text-[10px] font-bold">
+                ${isRet ? '+' : '-'}${item.linkedQty || 1} pcs (${item.linkedSize || 'M'})
+              </span>
+            </div>
+          `;
+        }
 
         row.innerHTML = `
           <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${item.date}</td>
@@ -1498,9 +1705,8 @@
           </td>
           <td class="py-2.5 px-3 font-semibold text-slate-800">${item.category}</td>
           <td class="py-2.5 px-3 text-slate-500">
-            <span>${item.notes || '-'}</span>
-            ${ordersBadge}
-            ${linkBadge}
+            <div>${item.notes || '-'} ${linkBadge}</div>
+            ${productTag}
           </td>
           <td class="py-2.5 px-3 text-right font-bold ${item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
             <div>${item.type === 'income' ? '+' : '-'}${formatBDT(item.amount)}</div>
@@ -1599,7 +1805,6 @@
       }
     }
 
-    // Safe Import & Restore
     function handleFileSelect(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1609,7 +1814,6 @@
           const parsed = JSON.parse(event.target.result);
           if (Array.isArray(parsed) || (parsed.transactions && parsed.inventory)) {
             pendingImportData = parsed;
-            
             const incomingTx = Array.isArray(parsed) ? parsed : (parsed.transactions || []);
             const existingKeys = new Set(transactions.map(t => `${t.date}_${t.type}_${t.category}_${t.amount}`));
             let newCount = 0;
@@ -1623,7 +1827,7 @@
             document.getElementById('modalNewCount').textContent = newCount;
             document.getElementById('importModal').classList.remove('hidden');
           } else {
-            alert('Invalid backup file format.');
+            alert('Invalid backup format.');
           }
         } catch (err) {
           alert('Failed to read JSON backup.');
@@ -1653,7 +1857,7 @@
             inventory.push(invItem);
           }
         });
-        alert('New transactions and inventory items merged.');
+        alert('Data merged successfully.');
       } else if (mode === 'overwrite') {
         transactions = incomingTx;
         if (incomingInv.length > 0) inventory = incomingInv;
@@ -1664,6 +1868,7 @@
       saveInventoryData();
       renderDashboard();
       renderInventoryDashboard();
+      populateProductLinkDropdown();
       closeImportModal();
     }
 
@@ -1698,11 +1903,11 @@
 
     function exportCSV() {
       if (transactions.length === 0) return alert('No transactions to export.');
-      let csv = 'ID,Date,Type,Category,COGS_or_OpEx,Amount_BDT,Foreign_Info,Orders_Count,Receipt_Link,Notes\n';
+      let csv = 'ID,Date,Type,Category,COGS_or_OpEx,Product_SKU,Product_Name,Size,Qty,Amount_BDT,Foreign_Info,Notes\n';
       transactions.forEach(t => {
         let fStr = t.foreignInfo ? `${t.foreignInfo.symbol}${t.foreignInfo.amount} @ ${t.foreignInfo.rate}` : '';
         const cogsLabel = t.type === 'income' ? 'Revenue' : (isCOGS(t.category) ? 'COGS' : 'OpEx');
-        csv += `"${t.id}","${t.date}","${t.type}","${t.category}","${cogsLabel}","${t.amount}","${fStr}","${t.orderCount || ''}","${t.receiptLink || ''}","${(t.notes || '').replace(/"/g, '""')}"\n`;
+        csv += `"${t.id}","${t.date}","${t.type}","${t.category}","${cogsLabel}","${t.linkedProductSKU||''}","${t.linkedProductName||''}","${t.linkedSize||''}","${t.linkedQty||''}","${t.amount}","${fStr}","${(t.notes || '').replace(/"/g, '""')}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
